@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#233a2c" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>Rove — Revenue Commitment Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+ --green:#233a2c;--green2:#2f4d3a;--green3:#3f6b4a;--green4:#2d6a4f;--green-bg:#e6f1ea;
+ --gold:#c8a96e;--gold2:#e8c98e;--gold-bg:#f5ecd8;
+ --cream:#f6f2ea;--cream2:#ece5d8;--cream3:#e0d8c8;--white:#fff;
+ --red:#9b2226;--red-bg:#f7e3e3;--amber:#7f5000;--amber-bg:#fff0cc;
+ --text:#241c12;--text2:#4f4534;--text3:#8a8170;
+ --radius:13px;--shadow:0 4px 22px rgba(35,40,30,.10);
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+.num{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums}
+
+/* header */
+.header{background:var(--green);padding:20px 34px;position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;top:-70px;right:-30px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(200,169,110,.18),transparent 70%)}
+.header-in{max-width:1300px;margin:0 auto;position:relative;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:5px}
+.header h1{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;line-height:1.1}
+.header h1 em{color:var(--gold2);font-style:normal}
+.header-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:5px}
+.header .spacer{flex:1}
+.curctl{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:6px 9px}
+.curctl .lab{font-size:10px;color:rgba(255,255,255,.55);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em}
+.curctl input{width:78px;padding:6px 8px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.18);color:#fff;font-size:12.5px;font-family:'DM Mono',monospace}
+.seg{display:inline-flex;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.18)}
+.seg button{background:transparent;color:rgba(255,255,255,.7);border:0;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit}
+.seg button.on{background:var(--gold);color:#3a2a10}
+
+.wrap{max-width:1300px;margin:0 auto;padding:20px 20px 70px}
+
+.btn{height:38px;padding:0 15px;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.btn-gold{background:var(--gold);color:#3a2a10;box-shadow:0 3px 11px rgba(200,169,110,.32)}
+.btn-gold:hover{background:var(--gold2)}
+.btn-ghost{background:var(--cream);color:var(--text2);border:1.5px solid var(--cream3)}
+.btn-ghost:hover{border-color:var(--green3);color:var(--green)}
+.btn.sm{height:32px;padding:0 11px;font-size:12px}
+
+/* cards */
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(3,1fr);margin-top:6px}
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 17px}
+.card h3{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--green3);font-weight:500;margin-bottom:2px}
+.kpi .v{font-family:'DM Serif Display',serif;font-size:25px;margin:5px 0 2px;color:var(--green)}
+.kpi .v small{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);font-weight:400}
+.kpi .sub{font-size:11.5px;color:var(--text3)}
+
+.section{margin-top:22px}
+.section .head{display:flex;align-items:center;gap:10px;margin-bottom:11px;flex-wrap:wrap}
+.section .head h2{font-family:'DM Serif Display',serif;font-size:18px;color:var(--green);font-weight:400}
+.section .head .ref{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);border:1px solid var(--cream3);padding:2px 7px;border-radius:6px}
+.section .head .spacer{flex:1}
+
+.bar{height:9px;border-radius:999px;background:var(--cream2);overflow:hidden;display:flex}
+.bar>i{display:block;height:100%}
+.bar>i.rev{background:linear-gradient(90deg,var(--green4),var(--green3))}
+.bar>i.pot{background:linear-gradient(90deg,var(--gold),var(--gold2));opacity:.9}
+
+table{width:100%;border-collapse:collapse;font-size:12.6px}
+thead th{text-align:right;color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-family:'DM Mono',monospace;padding:9px 10px;border-bottom:1.5px solid var(--cream2);white-space:nowrap}
+thead th:first-child,tbody td:first-child{text-align:left}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--cream2);text-align:right;white-space:nowrap}
+tbody tr:hover{background:var(--cream)}
+tbody td.l{text-align:left}
+tbody tr.detail{background:var(--cream)}
+tbody tr.detail td{font-size:11.5px;color:var(--text2);white-space:normal;text-align:left;padding:10px 14px}
+.tablewrap{overflow:auto;border:1px solid var(--cream2);border-radius:var(--radius);background:var(--white);box-shadow:var(--shadow)}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{color:var(--gold2)}
+th.sortable::after{content:"\2195";opacity:.25;margin-left:4px;font-size:9px}
+th.sortable.on::after{content:attr(data-arrow);opacity:1;color:var(--gold2)}
+.ordbtn{border:1px solid var(--cream2);background:var(--white);color:var(--text2);border-radius:5px;cursor:pointer;width:20px;height:18px;line-height:1;font-size:9px;padding:0}
+.ordbtn:hover:not(:disabled){border-color:var(--gold2);color:var(--gold2)}
+.ordbtn:disabled{opacity:.25;cursor:default}
+.pill{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;display:inline-block;font-family:'DM Sans'}
+.pill.enq{background:var(--gold-bg);color:var(--amber)}
+.pill.cancel{background:var(--red-bg);color:var(--red)}
+tbody tr.archived td{opacity:.5}                 /* cancelled = archived: still readable, clearly not counted */
+tbody tr.archived td .pill{opacity:1}
+.pill.ongoing{background:var(--green-bg);color:var(--green4)}
+.pill.done{background:var(--green);color:#fff}
+.pill.muted{background:var(--cream2);color:var(--text3)}
+.pill.warn{background:var(--amber-bg);color:var(--amber)}
+.pill.bad{background:var(--red-bg);color:var(--red)}
+.pill.ok{background:var(--green-bg);color:var(--green4)}
+.pill.gold{background:var(--gold);color:#3a2a10}
+
+.two{grid-template-columns:1fr 1fr}
+.chartbox{position:relative;height:280px}
+@media(max-width:980px){.kpis{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+/* phone layout — the app is installable (PWA) and used from mobiles by the team */
+@media(max-width:640px){
+ .header{padding:14px 14px}.wrap{padding:12px 10px 60px}
+ .header h1{font-size:20px}.kpi .v{font-size:21px}
+ .toolbar{width:100%}.toolbar input[type=search]{flex:1;min-width:110px}
+ .chartbox{height:220px}
+}
+
+.banner{margin:14px 0 0;padding:11px 15px;border-radius:11px;font-size:12.5px;display:flex;gap:10px;align-items:flex-start;background:var(--amber-bg);border:1px solid #e7d29a;color:#6b4e16}
+
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar input,.toolbar select{height:34px;padding:0 10px;border-radius:9px;border:1.5px solid var(--cream2);background:var(--cream);color:var(--text);font-size:12.5px;font-family:inherit}
+.toolbar input:focus,.toolbar select:focus{outline:none;border-color:var(--green3);background:#fff}
+.miniseg{display:inline-flex;border:1.5px solid var(--cream2);border-radius:8px;overflow:hidden}
+.miniseg button{background:var(--cream);color:var(--text2);border:0;padding:6px 11px;cursor:pointer;font-size:11.5px;font-weight:600;font-family:inherit}
+.miniseg button.on{background:var(--green);color:#fff}
+
+.note{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.55}
+.dlinp{width:138px;height:30px;padding:0 8px;border:1.5px solid var(--cream2);border-radius:7px;background:var(--cream);color:var(--text);font-size:12px;font-family:'DM Mono',monospace}
+.dlinp:focus{outline:none;border-color:var(--green3);background:#fff}
+.act{display:inline-flex;gap:3px}
+.iconbtn{cursor:pointer;border:1px solid var(--cream2);background:var(--white);color:var(--text2);font-size:11px;padding:3px 6px;border-radius:6px;line-height:1;font-family:inherit}
+.iconbtn:hover{border-color:var(--green3);color:var(--green)}
+.iconbtn.g:hover{border-color:var(--gold);color:var(--amber)}
+.iconbtn.r:hover{border-color:var(--red);color:var(--red)}
+.xbtn{cursor:pointer;border:0;background:transparent;font-family:'DM Mono',monospace;font-size:12px;color:var(--green3);padding:0 4px 0 0}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(30,38,28,.55);display:none;place-items:center;z-index:60;padding:18px}
+.overlay.show{display:grid}
+.modal{width:min(640px,96vw);max-height:92vh;overflow:auto;background:var(--white);border-radius:16px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+.modal h2{font-family:'DM Serif Display',serif;font-size:20px;color:var(--green);font-weight:400;margin-bottom:3px}
+.modal .muted{color:var(--text3);font-size:12.5px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:11px;font-weight:600;color:var(--text2)}
+.field input,.field select{height:40px;padding:0 11px;border:1.5px solid var(--cream2);border-radius:9px;background:var(--cream);font-size:13.5px;font-family:inherit;color:var(--text);outline:none}
+.field input:focus,.field select:focus{border-color:var(--green3);background:#fff}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media(max-width:520px){.row2{grid-template-columns:1fr}}
+.seclab{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--green3);display:flex;align-items:center;gap:9px;margin:14px 0 10px}
+.seclab::after{content:'';flex:1;height:1px;background:var(--cream2)}
+.lrow{display:flex;gap:4px;margin-bottom:6px;align-items:center}
+.lrow input,.lrow select{height:32px;padding:0 6px;border:1.5px solid var(--cream2);border-radius:7px;background:var(--cream);font-size:12px;font-family:inherit;color:var(--text);outline:none}
+.lrow input:focus,.lrow select:focus{border-color:var(--green3);background:#fff}
+.lrow .ldesc{flex:1;min-width:56px}
+.lrow .lnum{width:66px;flex:none;font-family:'DM Mono',monospace;text-align:right}
+.lrow .lnet{background:var(--cream2);color:var(--text3)}
+.lrow .lcat{width:132px;flex:none}
+.lrow .ldel{cursor:pointer;border:1px solid var(--cream2);background:var(--white);color:var(--red);border-radius:6px;height:32px;width:24px;font-size:11px;flex:none;padding:0}
+.drop{border:2px dashed var(--cream3);border-radius:12px;padding:26px;text-align:center;color:var(--text3);cursor:pointer;background:var(--cream)}
+.drop.drag{border-color:var(--gold);background:var(--gold-bg);color:var(--text)}
+.parselog{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);max-height:130px;overflow:auto;margin-top:10px;background:var(--cream);border:1px solid var(--cream2);border-radius:8px;padding:9px 11px;white-space:pre-wrap;display:none}
+.flag{background:var(--gold-bg);border:1px solid #e7d29a;border-radius:9px;padding:9px 12px;font-size:12px;color:#6b4e16;margin-top:10px}
+footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-in">
+    <div>
+      <div class="eyebrow">CV Nandhi Ratu Semesta × Yurido Goods Pty Ltd · No. 001/NRN/IV/2026</div>
+      <h1>Revenue Commitment <em>Tracker</em></h1>
+      <div class="header-sub">Rove Gifts HQ × Rove Gifts Australia · live dashboard · <b style="color:var(--gold2)">v28 · cloud</b> · <span id="roleBadge"></span> <span id="syncBadge" title="Sync status with the Google Sheet database"></span></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="curctl">
+      <div class="seg" id="segCur"><button data-v="AUD" class="on">AUD</button><button data-v="IDR">IDR</button></div>
+      <span class="lab">1 AUD =</span>
+      <input type="number" id="rateInput" value="10000" step="50" title="AUD to IDR rate" />
+      <span class="lab">IDR</span>
+    </div>
+    <button class="btn btn-gold sm" id="uploadBtn">&#128228; Upload PDF</button>
+    <button class="btn btn-ghost sm" id="addBtn">&#10010; Add</button>
+    <button class="btn btn-ghost sm" id="resetBtn" title="Clear all deals and start fresh">&#128465; Reset</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="banner" id="demoBanner">
+    <span>&#9888;</span>
+    <span><b>Empty tracker — ready for your data.</b> Add deals by clicking <b>&#128228; Upload PDF</b> (Quotation or Invoice) or <b>&#10010; Add</b>. Each row is one enquiry/project through its lifecycle: Enquiry Phase → Ongoing Project → Project Done. Enquiries count as <b>Potential</b>; invoices set <b>Deal Value + Invoiced (Real)</b>, with any unbilled balance shown as Potential.</span>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid kpis section" style="margin-top:14px">
+    <div class="card kpi"><h3>Real Revenue</h3><div class="v" id="kpiReal">—</div><div class="sub" id="kpiRealSub">Invoiced to date · ex-GST</div></div>
+    <div class="card kpi"><h3>Potential Revenue</h3><div class="v" id="kpiPot">—</div><div class="sub" id="kpiPotSub">Enquiries + uninvoiced balances</div></div>
+    <div class="card kpi"><h3 id="kpiRevTitle">Real vs Commitment</h3><div class="v" id="kpiRev">—</div><div class="bar" style="margin:8px 0 6px"><i class="rev" id="kpiBarRev" style="width:0%"></i><i class="pot" id="kpiBarPot" style="width:0%"></i></div><div class="sub" id="kpiRevSub">—</div></div>
+  </div>
+
+  <!-- PHASE TABLE -->
+  <div class="section">
+    <div class="head">
+      <h2>Revenue Achievement by Phase</h2>
+      <span class="ref">Cl. 5.1 · 5.3</span>
+      <div class="spacer"></div>
+      <div class="toolbar">
+        <span class="note" style="margin:0">Basis:</span>
+        <div class="miniseg" id="segDiscount">
+          <button data-v="addback" class="on" title="Discount added back to revenue (Gross Revenue, Cl. 1)">Gross Revenue</button>
+          <button data-v="net" title="Net amount actually invoiced to client">Net Revenue</button>
+        </div>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table id="phaseTable">
+        <thead><tr>
+          <th>Phase</th><th>Period</th><th>Base RC</th><th>Shortfall In</th>
+          <th>Revenue Commitment</th><th>Real Revenue</th><th>%</th><th>Potential</th><th>+Pot %</th>
+          <th>Shortfall Out</th><th>Royalty</th><th>Status</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="note">Phase is set by each deal's <b>delivery date</b> (handover of all items to the client — royalty falls due then, Cl. 6.4; usually the event date). <b>Real Revenue</b> = invoiced to date (Ongoing + Done projects); <b>Potential</b> = active enquiries + uninvoiced balance of ongoing projects. Shortfall vs RC carries forward cumulatively (Cl. 5.3): <b>Revenue Commitment = Base RC + Shortfall In</b>. Amounts in <b id="noteCur">AUD</b>. Royalty: HQ product = phase rate (7%/11%/15%), Non-HQ product &amp; service = 5% (Cl. 6); shipping excluded.</div>
+    <div class="note" id="outsideNote" style="color:var(--amber);display:none"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="grid two section">
+    <div class="card"><h3 style="margin-bottom:10px">Real + Potential vs Revenue Commitment</h3><div class="chartbox"><canvas id="chartPhase"></canvas></div></div>
+    <div class="card"><h3 style="margin-bottom:10px">Cumulative Revenue vs Base RC</h3><div class="chartbox"><canvas id="chartCum"></canvas></div></div>
+  </div>
+
+  <!-- PIPELINE -->
+  <div class="section">
+    <div class="head"><h2>Pipeline — Potential Revenue</h2><div class="spacer"></div><span class="note" id="pipeSum" style="margin:0"></span></div>
+    <div class="tablewrap">
+      <table id="pipeTable">
+        <thead><tr><th>No</th><th>Client</th><th>Source</th><th>Delivery Date</th><th>Phase</th><th>Potential</th><th>Est. Royalty</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DEALS -->
+  <div class="section">
+    <div class="head">
+      <h2>Enquiries &amp; Projects</h2>
+      <div class="spacer"></div>
+      <div class="toolbar">
+        <input type="search" id="docSearch" placeholder="Search client / no / notes…" />
+        <select id="docStatus"><option value="">All statuses</option><option>Enquiry Phase</option><option>Ongoing Project</option><option>Project Done</option><option value="__cancelled">Cancelled (archive)</option><option>Enquiry Cancel</option><option>Project Cancel</option></select>
+        <select id="docPhase"><option value="">All phases</option></select>
+        <select id="docSort" title="Sort the list (or click a column header)">
+          <option value="">Manual order (drag with &#9650;&#9660;)</option>
+          <option value="no|1">No &#9650; (ENQ/EVT ascending)</option>
+          <option value="no|-1">No &#9660;</option>
+          <option value="klien|1">Client A&#8594;Z</option>
+          <option value="eventDate|1">Delivery date &#9650; (soonest)</option>
+          <option value="eventDate|-1">Delivery date &#9660;</option>
+          <option value="dv|-1">Deal Value &#9660; (largest)</option>
+          <option value="inv|-1">Invoiced &#9660;</option>
+          <option value="pot|-1">Potential &#9660;</option>
+          <option value="status|1">Status</option>
+        </select>
+        <button class="btn btn-ghost sm" id="exportBtn">&#11015; Export</button>
+        <button class="btn btn-ghost sm" id="importBtn">&#11014; Import</button>
+        <input type="file" id="importFile" accept=".csv" style="display:none" />
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table id="docTable">
+        <thead><tr>
+          <th>#</th>
+          <th class="sortable" data-sort="no">No</th>
+          <th class="sortable" data-sort="klien">Client</th>
+          <th class="sortable" data-sort="eventDate">Delivery Date</th>
+          <th class="sortable" data-sort="phaseId">Phase</th>
+          <th class="sortable" data-sort="dv">Deal Value</th>
+          <th class="sortable" data-sort="inv">Invoiced (Real)</th>
+          <th class="sortable" data-sort="pot">Potential</th>
+          <th class="sortable" data-sort="roy">Royalty</th>
+          <th class="sortable" data-sort="status">Status</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="note" id="docCount"></div>
+  </div>
+
+  <footer>
+    Source: <b>Final_Draft_Contract_02_Rove_AU</b> — Global Exclusive Distribution Agreement No. 001/NRN/IV/2026 (CONFIDENTIAL). Effective Date 1 May 2026.<br/>
+    Internal monitoring tool — not a legal document. In case of discrepancy, the contract prevails.
+  </footer>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="overlay" id="ovUpload">
+  <div class="modal">
+    <h2 id="uploadTitle">Upload Quotation / Invoice (PDF)</h2>
+    <p class="muted" id="uploadHint">The system reads the PDF, matches it to an existing enquiry/project, and pre-fills the form. <b>Always review</b> before saving.</p>
+    <div class="drop" id="drop"><div style="font-size:30px">&#128196;</div><div><b>Click</b> or drop PDF files here</div><div class="note" style="margin-top:3px">A new quotation version replaces the old one · an invoice converts the enquiry to a project</div></div>
+    <input type="file" id="pdfFile" accept="application/pdf" multiple style="display:none" />
+    <div class="parselog" id="parselog"></div>
+    <div class="flag">Browser auto-extraction is best-effort (Xero invoices read well; complex quote PDFs may need manual fixes). For accurate bulk updates, drop new PDFs in the folders and ask to refresh.</div>
+    <div style="margin-top:14px"><button class="btn btn-ghost" id="closeUpload">Close</button><button class="btn btn-ghost" id="manualInv" style="display:none;margin-left:8px">Enter invoice manually instead</button></div>
+  </div>
+</div>
+
+<!-- DEAL FORM MODAL -->
+<div class="overlay" id="ovForm">
+  <div class="modal">
+    <h2 id="formTitle">Add Enquiry / Project</h2>
+    <p class="muted" id="formHint">Review &amp; complete the fields.</p>
+    <div class="field" id="linkRow" style="display:none">
+      <label>Link this invoice to an enquiry / project</label>
+      <select id="fLink"></select>
+    </div>
+    <div id="secLines" style="display:none">
+      <div class="seclab" id="lineSecLab">Line items — classify each</div>
+      <div class="note" style="margin:0 0 8px">Itemise the deal here — from a PDF upload these are pre-filled, or click <b>&#10010; Add line</b> to enter them by hand. Set each line's <b>royalty type</b>, and its <b>gross</b> &amp; <b>discount</b>; net and the Deal Value fields below recompute automatically. Leave empty to type the totals straight into Deal Value instead.</div>
+      <div id="lineRows"></div>
+      <button class="btn btn-ghost sm" id="addLineBtn" type="button">&#10010; Add line</button>
+      <div class="note" id="lineSummary" style="margin-top:6px"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Deal No (ENQ / EVT)</label><input id="fNo" placeholder="ENQ0001"/></div>
+      <div class="field"><label>Client</label><input id="fKlien" placeholder="Client name"/></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Delivery Date — handover of all items to client (sets Phase; usually the event date)</label><input type="date" id="fEvent"/></div>
+      <div class="field"><label>Status</label><select id="fStatus"><option>Enquiry Phase</option><option>Enquiry Cancel</option><option>Ongoing Project</option><option>Project Done</option><option>Project Cancel</option></select></div>
+    </div>
+    <div class="seclab">Deal value — full project, ex-GST</div>
+    <div class="row2">
+      <div class="field"><label>Product — net (after discount)</label><input type="number" id="fProdNet" step="0.01" placeholder="0"/></div>
+      <div class="field"><label>Product — discount</label><input type="number" id="fProdDisc" step="0.01" placeholder="0"/></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Non-HQ Product — net (5% royalty, needs HQ approval Cl. 6.2)</label><input type="number" id="fNonNet" step="0.01" placeholder="0"/></div>
+      <div class="field"><label>Non-HQ Product — discount</label><input type="number" id="fNonDisc" step="0.01" placeholder="0"/></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Service — net (5% royalty: live stamping etc.)</label><input type="number" id="fServNet" step="0.01" placeholder="0"/></div>
+      <div class="field"><label>Service — discount</label><input type="number" id="fServDisc" step="0.01" placeholder="0"/></div>
+    </div>
+    <div id="secInv">
+      <div class="seclab">Invoiced to date — ex-GST</div>
+      <div class="note" id="fInvHint" style="margin:0 0 8px;display:none"></div>
+      <div class="row2">
+        <div class="field"><label>Invoiced — net</label><input type="number" id="fInvNet" step="0.01" placeholder="0"/></div>
+        <div class="field"><label>Invoiced — discount</label><input type="number" id="fInvDisc" step="0.01" placeholder="0"/></div>
+      </div>
+      <div class="field"><label>Invoice refs</label><input id="fInvRefs" placeholder="INV-0001, INV-0002"/></div>
+      <div class="row2" id="rowInstal" style="align-items:end;display:none">
+        <div class="field"><label id="instalLab">Instalments — invoice # of # · or this invoice's share of the project</label>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="number" id="fInvX" min="1" step="1" placeholder="1" style="width:56px"/>
+            <span class="lab" style="color:var(--text3)">of</span>
+            <input type="number" id="fInvY" min="1" step="1" placeholder="2" style="width:56px"/>
+            <span class="lab" style="color:var(--text3)" id="instalPctLab">· this invoice =</span>
+            <input type="number" id="fInvPct" min="1" max="99" step="1" placeholder="40" style="width:56px"/>
+            <span class="lab" style="color:var(--text3)">% of project</span>
+          </div>
+        </div>
+        <div class="note" id="fInvSplitNote" style="margin:0"></div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Currency</label><select id="fCur"><option>AUD</option><option>IDR</option></select></div>
+      <div class="field"><label>Notes</label><input id="fNotes" placeholder="optional"/></div>
+    </div>
+    <div class="row2" style="margin-top:4px">
+      <button class="btn btn-gold" id="saveDoc">&#128190; Save</button>
+      <button class="btn btn-ghost" id="closeForm">Cancel</button>
+    </div>
+    <div class="note" id="fPhasePreview"></div>
+  </div>
+</div>
+
+<script>
+/* ====================== CONTRACT CONFIG ====================== */
+const CONTRACT = {
+  effectiveDate:"2026-05-01",
+  phases:[
+    {id:"F1", name:"Phase 1 – Initial Build", start:"2026-05-01", end:"2026-12-31", rc:55000,  rate:0.07},
+    {id:"F2", name:"Phase 2 – Growth",        start:"2027-01-01", end:"2027-12-31", rc:170000, rate:0.11},
+    {id:"F3", name:"Phase 3 – Expansion",     start:"2028-01-01", end:"2028-12-31", rc:290000, rate:0.15}
+  ],
+  rateService:0.05
+};
+/* "…Cancel" statuses are the ARCHIVE: the deal keeps every figure and its history, but contributes
+   nothing to Real / Potential / royalty (see enrich). Cancelling never deletes — it is reversible. */
+const STATUSES=["Enquiry Phase","Enquiry Cancel","Ongoing Project","Project Done","Project Cancel"];
+const CANCELLED=s=>s==="Enquiry Cancel"||s==="Project Cancel";
+
+/* ====================== CLOUD BACKEND ======================
+   The deals live in a Google Sheet behind BACKEND_URL (an Apps Script Web App, same pattern as the
+   Rove Cost Estimator). The passcode overlay at the bottom of this file fetches the live data and
+   sets the role: ADMIN passcode = full editing, TEAM passcode = read-only dashboard.
+   localStorage is only an offline cache — the Sheet is the source of truth. */
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbxZ2lWyQb1NjJuvBCz5ypOayxRYp1FCn2NXs68pGcTDyjveRvvArVUyfe1Cm6Wh1WRT/exec";   // ← the Apps Script /exec URL (see PANDUAN DEPLOY.md)
+const RO=()=> window.__ROLE!=="admin";        // read-only role?
+
+/* ====================== STATE & HELPERS ====================== */
+const KDOCS="rc_deals_v7", KCFG="rc_cfg_v7";
+let cfg = load(KCFG, {displayCur:"AUD", rate:10000, addBackDiscount:true});
+if(cfg.addBackDiscount===undefined) cfg.addBackDiscount=true;
+if(!(parseFloat(cfg.rate)>0)) cfg.rate=10000;   // never let a blank/0 FX rate survive a reload
+let deals = load(KDOCS, null) || [];            // offline cache until the backend answers
+let isSeed = deals.length===0;
+let charts={};
+let expanded={};
+
+function load(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function save(){ localStorage.setItem(KCFG,JSON.stringify(cfg)); }
+function saveDeals(){ localStorage.setItem(KDOCS,JSON.stringify(deals)); isSeed=false; document.getElementById("demoBanner").style.display="none"; scheduleSync(); }
+
+const norm = s => (s==null?"":String(s)).toLowerCase().trim();
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => (isFinite(n)?Math.round(n):0).toLocaleString("en-AU");
+function rateVal(){ return parseFloat(cfg.rate)||0; }
+function toAUD(v,cur){ return cur==="IDR" ? (rateVal()? v/rateVal():0) : v; }
+function disp(aud){ return cfg.displayCur==="IDR" ? aud*rateVal() : aud; }
+function sym(){ return cfg.displayCur==="IDR" ? "Rp" : "A$"; }
+function fmtD(aud){ return sym()+" "+fmt(disp(aud)); }
+function pct(a,b){ return b>0?Math.round(a/b*100):0; }
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function pd(s){ if(!s) return null; const d=new Date(s); return isNaN(d)?null:d; }
+const dmy = d => d? (d.getDate()+" "+MONTHS[d.getMonth()]+" "+d.getFullYear()) : "—";
+function todayStr(){ return dmy(new Date()); }
+function phaseOf(dateStr){ const d=pd(dateStr); if(!d) return null; const p=CONTRACT.phases.find(p=> d>=new Date(p.start)&&d<=new Date(p.end)); return p?p.id:null; }
+function phaseRate(phaseId){ const p=CONTRACT.phases.find(p=>p.id===phaseId); return p?p.rate:0; }
+function baseNo(no){ return String(no||"").trim().replace(/\.\d+$/,""); }
+// Quotations use the convention ENQ#### — normalise any quote number (Q0002.5, ROVE AU - Q0001.3, ENQ0012.1) to ENQ + 4-digit core.
+function enqNo(no){ const m=baseNo(no).match(/(\d{2,6})/); return m ? "ENQ"+m[1].replace(/^0+(?=\d)/,"").padStart(4,"0") : baseNo(no).toUpperCase(); }
+const isProjRef = s => /^(evt|enq)\s*\d/i.test(String(s||"").trim());   // a project/enquiry reference (not an INV number)
+function clientMatch(a,b){ a=norm(a); b=norm(b); if(!a||!b) return false; return a.includes(b)||b.includes(a); }
+
+/* ====================== COMPUTE ====================== */
+function amounts(d){ // in AUD, chosen basis
+  const gb=cfg.addBackDiscount;
+  const prod=(+d.prodNet||0)+(gb?(+d.prodDisc||0):0);
+  const nonhq=(+d.nonHqNet||0)+(gb?(+d.nonHqDisc||0):0);
+  const serv=(+d.servNet||0)+(gb?(+d.servDisc||0):0);
+  const dv=toAUD(prod+nonhq+serv, d.cur||"AUD");
+  const inv=toAUD((+d.invNet||0)+(gb?(+d.invDisc||0):0), d.cur||"AUD");
+  return {prod:toAUD(prod,d.cur||"AUD"), nonhq:toAUD(nonhq,d.cur||"AUD"), serv:toAUD(serv,d.cur||"AUD"), dv, inv};
+}
+function enrich(d){
+  const phaseId=phaseOf(d.eventDate);
+  const a=amounts(d);
+  const pr=phaseRate(phaseId);
+  const br = a.dv>0 ? (a.prod*pr + (a.nonhq+a.serv)*CONTRACT.rateService)/a.dv : pr;   // blended: HQ product @ phase rate, non-HQ & service @ 5%
+  let real=0, pot=0;
+  if(CANCELLED(d.status)){ real=0; pot=0; }                 // archived: figures kept on the row, but counted nowhere
+  else if(d.status==="Enquiry Phase") pot=a.dv;
+  else if(d.status==="Ongoing Project"){ real=a.inv; pot=Math.max(0, a.dv-a.inv); }
+  else if(d.status==="Project Done"){ real=a.inv; pot=0; }
+  return {...d, phaseId, dv:a.dv, inv:a.inv, real, pot, br, royaltyReal:real*br, royaltyPot:pot*br};
+}
+function computePhases(items){
+  let carry=0;
+  return CONTRACT.phases.map(p=>{
+    const inP=items.filter(x=>x.phaseId===p.id);
+    const real=inP.reduce((s,x)=>s+x.real,0);
+    const pot=inP.reduce((s,x)=>s+x.pot,0);
+    const roy=inP.reduce((s,x)=>s+x.royaltyReal,0);
+    const carryIn=carry, rcEf=p.rc+carryIn;
+    const shortfall=Math.max(0,rcEf-real); carry=shortfall;
+    const now=new Date();
+    const elapsed = now<new Date(p.start)?"future":(now>new Date(p.end+"T23:59:59")?"past":"current");  // phase runs through end of its final day
+    return {...p, real, pot, roy, carryIn, rcEf, shortfall, carryOut:shortfall, ach:rcEf>0?real/rcEf:0, elapsed};
+  });
+}
+function currentPhase(ph){ return ph.find(p=>p.elapsed==="current")||ph.filter(p=>p.elapsed==="past").pop()||ph[0]; }
+
+/* ====================== RENDER ====================== */
+function statusPill(s){
+  if(s==="Enquiry Phase") return '<span class="pill enq">Enquiry Phase</span>';
+  if(s==="Enquiry Cancel") return '<span class="pill cancel">Enquiry Cancel</span>';
+  if(s==="Project Cancel") return '<span class="pill cancel">Project Cancel</span>';
+  if(s==="Ongoing Project") return '<span class="pill ongoing">Ongoing Project</span>';
+  if(s==="Project Done") return '<span class="pill done">Project Done</span>';
+  return '<span class="pill muted">'+(s||"—")+'</span>';
+}
+function render(){
+  const items=deals.map(enrich);
+  const ph=computePhases(items);
+  const cur=currentPhase(ph);
+  document.getElementById("noteCur").textContent=cfg.displayCur;
+
+  // KPIs
+  const totalReal=items.reduce((s,x)=>s+x.real,0);
+  const totalPot=items.reduce((s,x)=>s+x.pot,0);
+  const nProj=items.filter(x=>x.status==="Ongoing Project"||x.status==="Project Done").length;
+  const nEnq=items.filter(x=>x.status==="Enquiry Phase").length;
+  const nBal=items.filter(x=>x.status==="Ongoing Project"&&x.pot>0).length;
+  document.getElementById("kpiReal").textContent=fmtD(totalReal);
+  document.getElementById("kpiRealSub").textContent=`${nProj} projects · invoiced to date · ex-GST`;
+  document.getElementById("kpiPot").textContent=fmtD(totalPot);
+  document.getElementById("kpiPotSub").textContent=`${nEnq} enquiries + ${nBal} project balances`;
+  document.getElementById("kpiRevTitle").textContent=`Real vs Commitment — ${cur.id}`;
+  document.getElementById("kpiRev").innerHTML=fmtD(cur.real)+` <small>/ ${fmtD(cur.rcEf)}</small>`;
+  document.getElementById("kpiBarRev").style.width=Math.min(100,cur.ach*100)+"%";
+  document.getElementById("kpiBarPot").style.width=Math.min(100-Math.min(100,cur.ach*100),(cur.rcEf>0?cur.pot/cur.rcEf*100:0))+"%";
+  document.getElementById("kpiRevSub").textContent=`${cur.name.split(" – ")[1]||""} · achieved ${pct(cur.real,cur.rcEf)}% · +potential ${pct(cur.real+cur.pot,cur.rcEf)}%`;
+
+  // phase table
+  const tb=document.querySelector("#phaseTable tbody"); tb.innerHTML="";
+  ph.forEach(p=>{
+    const st = p.elapsed==="future"?'<span class="pill muted">upcoming</span>'
+      : p.ach>=1?'<span class="pill ok">achieved</span>'
+      : `<span class="pill ${p.elapsed==="current"?"warn":"bad"}">${p.elapsed==="current"?"in progress":"shortfall"}</span>`;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td class="l"><b>${p.id}</b></td>
+      <td class="l">${p.start.slice(0,7)} … ${p.end.slice(0,7)}</td>
+      <td class="num">${fmtD(p.rc)}</td>
+      <td class="num">${p.carryIn?'+'+fmt(disp(p.carryIn)):"—"}</td>
+      <td class="num"><b>${fmtD(p.rcEf)}</b></td>
+      <td class="num">${fmtD(p.real)}</td>
+      <td class="num">${pct(p.real,p.rcEf)}%</td>
+      <td class="num" style="color:var(--amber)">${p.pot?fmtD(p.pot):"—"}</td>
+      <td class="num">${pct(p.real+p.pot,p.rcEf)}%</td>
+      <td class="num" style="color:${p.carryOut>0?'var(--red)':'var(--text3)'}">${p.carryOut?fmtD(p.carryOut):"—"}</td>
+      <td class="num">${fmtD(p.roy)}</td>
+      <td>${st}</td>`;
+    tb.appendChild(tr);
+  });
+
+  // deals excluded from phase rows (no/invalid event date) but present in KPI totals — surface the gap
+  const outside=items.filter(x=>!x.phaseId&&(x.real>0||x.pot>0));
+  const on=document.getElementById("outsideNote");
+  if(outside.length){
+    on.style.display="";
+    on.innerHTML=`&#9888; ${outside.length} deal(s) without a valid delivery date are excluded from the phase rows above but included in the KPI totals: ${outside.map(x=>esc(x.no)||esc(x.klien)||"?").join(", ")} — ${fmtD(outside.reduce((s,x)=>s+x.real,0))} real / ${fmtD(outside.reduce((s,x)=>s+x.pot,0))} potential. Set their delivery dates in the table below.`;
+  } else on.style.display="none";
+
+  renderCharts(ph); renderPipe(items); renderDeals(items);
+}
+
+function renderCharts(ph){
+  if(typeof Chart==="undefined") return;
+  const labels=ph.map(p=>p.id);
+  const ax={grid:{color:"#e0d8c8"},ticks:{color:"#8a8170",font:{size:11,family:"DM Mono"}}};
+  const legend={labels:{color:"#4f4534",font:{size:11,family:"DM Sans"},boxWidth:12}};
+  const lineCommon={tension:.25,pointRadius:3,borderWidth:2.5,fill:false};
+  if(charts.p) charts.p.destroy();
+  charts.p=new Chart(document.getElementById("chartPhase"),{type:"bar",
+    data:{labels,datasets:[
+      {type:"bar",label:"Revenue Commitment",data:ph.map(p=>disp(p.rcEf)),backgroundColor:"#ece5d8",borderColor:"#d8c9a4",borderWidth:1,order:3},
+      {type:"line",label:"Real Revenue",data:ph.map(p=>disp(p.real)),borderColor:"#2d6a4f",backgroundColor:"#2d6a4f",order:1,...lineCommon},
+      {type:"line",label:"Potential Revenue",data:ph.map(p=>disp(p.pot)),borderColor:"#c8a96e",backgroundColor:"#c8a96e",order:2,...lineCommon}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend},scales:{x:ax,y:Object.assign({beginAtZero:true},ax)}}});
+  let cg=0,cp=0,cr=0; const cumG=[],cumP=[],cumR=[];
+  ph.forEach(p=>{cg+=p.real;cp+=p.pot;cr+=p.rc;cumG.push(disp(cg));cumP.push(disp(cp));cumR.push(disp(cr));});
+  if(charts.c) charts.c.destroy();
+  charts.c=new Chart(document.getElementById("chartCum"),{type:"bar",
+    data:{labels,datasets:[
+      {type:"bar",label:"Base RC (cumulative)",data:cumR,backgroundColor:"#ece5d8",borderColor:"#d8c9a4",borderWidth:1,order:3},
+      {type:"line",label:"Real Revenue (cumulative)",data:cumG,borderColor:"#2d6a4f",backgroundColor:"#2d6a4f",order:1,...lineCommon},
+      {type:"line",label:"Potential Revenue (cumulative)",data:cumP,borderColor:"#c8a96e",backgroundColor:"#c8a96e",order:2,...lineCommon}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend},scales:{x:ax,y:Object.assign({beginAtZero:true},ax)}}});
+}
+
+function renderPipe(items){
+  const tb=document.querySelector("#pipeTable tbody"); tb.innerHTML="";
+  const rows=items.filter(x=>x.pot>0).sort((a,b)=>(pd(a.eventDate)||0)-(pd(b.eventDate)||0));
+  if(!rows.length){ tb.innerHTML='<tr><td class="l" colspan="7" style="color:var(--text3)">No potential revenue in the pipeline.</td></tr>'; document.getElementById("pipeSum").textContent=""; return; }
+  rows.forEach(x=>{
+    const src = x.status==="Enquiry Phase" ? '<span class="pill enq">Enquiry</span>' : '<span class="pill ongoing">Project balance</span>';
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="l">${esc(x.no)||"—"}</td><td class="l">${esc(x.klien)||"—"}</td><td class="l">${src}</td>
+      <td class="l">${dmy(pd(x.eventDate))}</td><td>${x.phaseId?'<span class="pill gold">'+x.phaseId+'</span>':'<span class="pill warn">?</span>'}</td>
+      <td class="num">${fmtD(x.pot)}</td><td class="num">${fmtD(x.royaltyPot)}</td>`;
+    tb.appendChild(tr);
+  });
+  const tot=rows.reduce((s,x)=>s+x.pot,0);
+  document.getElementById("pipeSum").textContent=`${rows.length} sources · ${fmtD(tot)}`;
+}
+
+let dfilt={q:"",status:"",phase:""};
+function passFilters(x){
+  if(dfilt.status==="__cancelled"){ if(!CANCELLED(x.status)) return false; }   // the archive: both cancel types
+  else if(dfilt.status && x.status!==dfilt.status) return false;
+  if(dfilt.phase && x.phaseId!==dfilt.phase) return false;
+  if(dfilt.q && !norm(x.klien+" "+x.no+" "+(x.notes||"")+" "+(x.invRefs||"")).includes(norm(dfilt.q))) return false;
+  return true;
+}
+/* Sort key. dsort.key="" → manual (the deals array order, reorderable with the ▲▼ buttons). */
+let dsort={key:"",dir:1};
+const STATUS_ORDER={"Enquiry Phase":0,"Ongoing Project":1,"Project Done":2,"Enquiry Cancel":3,"Project Cancel":4};   // archive sorts last
+function sortVal(x,key){
+  switch(key){
+    // ENQ0002 / EVT0010 → sort by the numeric core first, so ENQ0002 lands before ENQ0010 (plain
+    // text sort would put "ENQ0010" before "ENQ0002"). Prefix breaks ties (ENQ before EVT).
+    case "no":{ const s=String(x.no||""); const m=s.match(/(\d+)/); const pre=s.replace(/[\d.]/g,"").toUpperCase();
+                return [pre, m?parseInt(m[1],10):Number.MAX_SAFE_INTEGER, s]; }
+    case "klien": return [norm(x.klien)];
+    case "eventDate": return [x.eventDate||"9999-99-99"];
+    case "phaseId": return [x.phaseId||"zzz"];
+    case "status": return [STATUS_ORDER[x.status]!=null?STATUS_ORDER[x.status]:9, norm(x.klien)];
+    case "dv": return [x.dv||0];
+    case "inv": return [x.inv||0];
+    case "pot": return [x.pot||0];
+    case "roy": return [(x.royaltyReal||0)+(x.royaltyPot||0)];
+    default: return [0];
+  }
+}
+function cmpRows(a,b,key,dir){
+  const va=sortVal(a.x,key), vb=sortVal(b.x,key);
+  for(let k=0;k<Math.max(va.length,vb.length);k++){
+    const p=va[k], q=vb[k];
+    if(p===q) continue;
+    if(p===undefined) return 1; if(q===undefined) return -1;
+    return (typeof p==="number"&&typeof q==="number" ? (p-q) : String(p).localeCompare(String(q))) * dir;
+  }
+  return 0;
+}
+function renderDeals(items){
+  const sel=document.getElementById("docPhase");
+  if(sel.options.length<=1) CONTRACT.phases.forEach(p=> sel.innerHTML+=`<option value="${p.id}">${p.id}</option>`);
+  const tb=document.querySelector("#docTable tbody"); tb.innerHTML="";
+  let rows=items.map((x,i)=>({x,i})).filter(({x})=>passFilters(x));
+  if(dsort.key) rows.sort((a,b)=>cmpRows(a,b,dsort.key,dsort.dir));
+  const manual = !dsort.key;
+  // header arrows
+  document.querySelectorAll("#docTable th.sortable").forEach(th=>{
+    const on = th.dataset.sort===dsort.key;
+    th.classList.toggle("on",on);
+    if(on) th.setAttribute("data-arrow", dsort.dir>0?"▲":"▼"); else th.removeAttribute("data-arrow");
+  });
+  let n=0;
+  const ro=RO();   // read-only role: no action buttons, no reordering, delivery dates locked
+  rows.forEach(({x,i})=>{
+    n++;
+    let act=`<button class="iconbtn" data-edit="${i}" title="Edit">&#9998;</button>`;
+    if(x.status==="Enquiry Phase") act+=`<button class="iconbtn g" data-inv="${i}" title="Add invoice / convert to project">&#10010;Inv</button><button class="iconbtn r" data-cancel="${i}" title="Client cancelled this enquiry — archive it (keeps the data, counts nothing)">&#10005;Cancel</button>`;
+    else if(x.status==="Enquiry Cancel") act+=`<button class="iconbtn" data-restore="${i}" title="Restore to Enquiry Phase">&#8634;Restore</button>`;
+    else if(x.status==="Ongoing Project") act+=`<button class="iconbtn g" data-inv="${i}" title="Add invoice">&#10010;Inv</button><button class="iconbtn" data-done="${i}" title="Mark Project Done">&#10003;</button><button class="iconbtn r" data-pcancel="${i}" title="Client cancelled this project — archive it (keeps the data, counts nothing)">&#10005;Cancel</button>`;
+    else if(x.status==="Project Done") act+=`<button class="iconbtn" data-reopen="${i}" title="Back to Ongoing">&#8634;</button><button class="iconbtn r" data-pcancel="${i}" title="Client cancelled this project — archive it (keeps the data, counts nothing)">&#10005;Cancel</button>`;
+    else if(x.status==="Project Cancel") act+=`<button class="iconbtn" data-prestore="${i}" title="Un-cancel — back to Ongoing Project">&#8634;Restore</button>`;
+    act+=`<button class="iconbtn r" data-del="${i}" title="Delete permanently (use ✕Cancel instead to archive)">&#128465;</button>`;
+    if(ro) act="";                                    // team passcode: view only — the backend refuses writes anyway
+    // ▲▼ reorder the underlying list. Only meaningful in manual order — a sort decides the order itself.
+    const ord= ro ? "" : `<span style="display:inline-flex;flex-direction:column;gap:1px;margin-right:5px;vertical-align:middle">`
+      +`<button class="ordbtn" data-up="${i}" ${manual&&i>0?"":"disabled"} title="${manual?"Move up":"Switch to Manual order to reorder"}">&#9650;</button>`
+      +`<button class="ordbtn" data-down="${i}" ${manual&&i<deals.length-1?"":"disabled"} title="${manual?"Move down":"Switch to Manual order to reorder"}">&#9660;</button></span>`;
+    const dateCell= ro ? dmy(pd(x.eventDate)) : `<input type="date" class="dlinp" data-ed="${i}" value="${esc(x.eventDate||"")}">`;
+    const tr=document.createElement("tr");
+    if(CANCELLED(x.status)) tr.className="archived";
+    tr.innerHTML=`
+      <td class="l num" style="color:var(--text3)">${ord}${n}</td>
+      <td class="l"><button class="xbtn" data-x="${i}">${expanded[i]?"&#9662;":"&#9656;"}</button><b>${esc(x.no)||"—"}</b></td>
+      <td class="l">${esc(x.klien)||"—"}</td>
+      <td class="l">${dateCell}</td>
+      <td>${x.phaseId?x.phaseId:'<span class="pill warn">no phase</span>'}</td>
+      <td class="num">${(x.status==="Enquiry Phase"||x.status==="Enquiry Cancel")?"—":fmtD(x.dv)}</td>
+      <td class="num">${x.inv?fmtD(x.inv):"—"}</td>
+      <td class="num" style="color:var(--amber)">${x.pot?fmtD(x.pot):"—"}</td>
+      <td class="num">${(x.royaltyReal||x.royaltyPot)?fmtD(x.royaltyReal+x.royaltyPot):"—"}</td>
+      <td>${statusPill(x.status)}</td>
+      <td class="l"><span class="act">${act}</span></td>`;
+    tb.appendChild(tr);
+    if(expanded[i]){
+      const det=document.createElement("tr"); det.className="detail";
+      const nonInfo=(+x.nonHqNet||0)?` · Non-HQ portion: ${fmtD(toAUD((+x.nonHqNet||0)+(cfg.addBackDiscount?(+x.nonHqDisc||0):0),x.cur))} @5%`:"";
+      const servInfo=(+x.servNet||0)?` · Service portion: ${fmtD(toAUD((+x.servNet||0)+(cfg.addBackDiscount?(+x.servDisc||0):0),x.cur))} @5%`:"";
+      det.innerHTML=`<td colspan="11">
+        <b>Breakdown:</b> HQ Product ${fmtD(toAUD((+x.prodNet||0)+(cfg.addBackDiscount?(+x.prodDisc||0):0),x.cur))} @${(phaseRate(x.phaseId)*100).toFixed(0)}%${nonInfo}${servInfo}
+        ${x.invRefs?` · <b>Invoices:</b> ${esc(x.invRefs)}`:""}
+        ${x.notes?`<br><b>Notes:</b> ${esc(x.notes)}`:""}
+        ${(x.log&&x.log.length)?`<br><b>History:</b><br>· ${x.log.map(esc).join("<br>· ")}`:""}
+      </td>`;
+      tb.appendChild(det);
+    }
+  });
+  const nArch=deals.filter(d=>CANCELLED(d.status)).length;
+  document.getElementById("docCount").textContent=`${n} of ${deals.length} deals${nArch?` · ${nArch} cancelled (archived — kept on file, counted nowhere)`:""}${dsort.key?` · sorted by ${dsort.key==="no"?"deal no":dsort.key==="klien"?"client":dsort.key==="eventDate"?"delivery date":dsort.key} ${dsort.dir>0?"▲":"▼"} — switch to Manual order to reorder with ▲▼`:` · manual order`}`;
+  const move=(from,to)=>{
+    if(to<0||to>=deals.length) return;
+    const [d]=deals.splice(from,1); deals.splice(to,0,d);
+    expanded={};                                     // row indices shifted — collapse to keep expanders honest
+    saveDeals(); render();
+  };
+  tb.querySelectorAll("[data-up]").forEach(b=> b.onclick=()=>move(+b.dataset.up,+b.dataset.up-1));
+  tb.querySelectorAll("[data-down]").forEach(b=> b.onclick=()=>move(+b.dataset.down,+b.dataset.down+1));
+  tb.querySelectorAll("[data-x]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.x; expanded[i]=!expanded[i]; render(); });
+  tb.querySelectorAll("[data-ed]").forEach(inp=> inp.onchange=()=>{ deals[+inp.dataset.ed].eventDate=inp.value; pushLog(+inp.dataset.ed,`delivery date set to ${inp.value}`); saveDeals(); render(); });
+  tb.querySelectorAll("[data-edit]").forEach(b=> b.onclick=()=>openForm({mode:"edit",dealIdx:+b.dataset.edit}));
+  tb.querySelectorAll("[data-inv]").forEach(b=> b.onclick=()=>startInvoiceUpload(+b.dataset.inv));
+  tb.querySelectorAll("[data-cancel]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.cancel; deals[i].status="Enquiry Cancel"; pushLog(i,"client cancelled the enquiry — archived (no longer counted in Potential)"); saveDeals(); render(); });
+  tb.querySelectorAll("[data-restore]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.restore; deals[i].status="Enquiry Phase"; pushLog(i,"enquiry restored from archive"); saveDeals(); render(); });
+  // Client cancelled a live project → archive it. Nothing is deleted: every figure, line item and log
+  // entry stays on the row and can be restored; it just stops counting towards Real / Potential / royalty.
+  tb.querySelectorAll("[data-pcancel]").forEach(b=> b.onclick=()=>{
+    const i=+b.dataset.pcancel; const d=deals[i]; const a=amounts(d);
+    if(!confirm(`Mark ${d.no||""} — ${d.klien||""} as CLIENT CANCELLED?\n\nIt moves to the archive: Real ${fmtD(a.inv)} and its Potential drop out of every total and the royalty.\n\nNothing is deleted — the figures and history stay on the row, and you can Restore it any time.`)) return;
+    d.status="Project Cancel"; pushLog(i,`client cancelled the project — archived (Real ${fmtD(a.inv)} and remaining Potential no longer counted)`);
+    saveDeals(); render();
+  });
+  tb.querySelectorAll("[data-prestore]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.prestore; deals[i].status="Ongoing Project"; pushLog(i,"project restored from archive — counting again"); saveDeals(); render(); });
+  tb.querySelectorAll("[data-done]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.done; deals[i].status="Project Done"; pushLog(i,"project marked done (delivery complete — royalty due, Cl. 6.4)"); saveDeals(); render(); });
+  tb.querySelectorAll("[data-reopen]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.reopen; deals[i].status="Ongoing Project"; pushLog(i,"project reopened"); saveDeals(); render(); });
+  tb.querySelectorAll("[data-del]").forEach(b=> b.onclick=()=>{ const i=+b.dataset.del; if(confirm(`Delete ${deals[i].no} — ${deals[i].klien}? This cannot be undone.`)){ deals.splice(i,1); expanded={}; saveDeals(); render(); } });
+}
+function pushLog(i,msg){ if(!deals[i].log) deals[i].log=[]; deals[i].log.push(`${todayStr()} — ${msg}`); }
+
+/* ====================== PDF EXTRACTION (generic) ====================== */
+async function extractPdfText(file){
+  const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let text="";
+  for(let p=1;p<=pdf.numPages;p++){
+    const pg=await pdf.getPage(p); const c=await pg.getTextContent();
+    const rows={};                                       // rebuild visual lines by Y position
+    c.items.forEach(it=>{ if(!it.str||!it.str.trim()) return; const y=Math.round(it.transform[5]/2)*2; (rows[y]=rows[y]||[]).push(it); });
+    Object.keys(rows).map(Number).sort((a,b)=>b-a).forEach(y=>{
+      // Gap-aware joining: some PDFs (e.g. Canva-style client quotes) emit one text item per
+      // glyph cluster. Joining with " " garbles words ("N a p a"). Instead, measure the X gap:
+      // tiny gap = same word (concatenate), medium = word space, large = column boundary.
+      const items=rows[y].sort((a,b)=>a.transform[4]-b.transform[4]);
+      let line="", prevEnd=null, prevFS=10;
+      items.forEach(it=>{
+        const x=it.transform[4];
+        const fs=Math.max(4, Math.hypot(it.transform[0]||0, it.transform[1]||0)||10);
+        if(prevEnd!==null){
+          const gap=x-prevEnd;
+          if(gap > Math.max(prevFS,fs)*1.6) line+="   ";                 // column gap
+          else if(gap > Math.min(prevFS,fs)*0.18) line+=" ";             // word space
+          /* else: same word — concatenate directly */
+        }
+        line+=it.str;
+        prevEnd=x+(typeof it.width==="number"&&it.width>0 ? it.width : it.str.length*fs*0.5);
+        prevFS=fs;
+      });
+      text+=line+"\n";
+    });
+  }
+  return text;
+}
+/* ---- OCR fallback for scanned / image-only PDFs (no text layer) ----
+   pdf.js renders the page to a canvas; Tesseract reads the pixels. The engine (~few MB + language
+   data) is fetched from the CDN only the first time an image PDF is opened, so normal uploads stay fast.
+   Output is fed through the SAME parseDoc / parseLines rules as a text PDF. */
+let tessLoad=null;
+function loadTesseract(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(tessLoad) return tessLoad;
+  tessLoad=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+    s.onload=()=>window.Tesseract?res(window.Tesseract):rej(new Error("OCR engine loaded but unavailable"));
+    s.onerror=()=>rej(new Error("could not download the OCR engine — needs an internet connection"));
+    document.head.appendChild(s);
+  });
+  return tessLoad;
+}
+async function ocrPdfText(file, onStep){
+  const T=await loadTesseract();
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  // Explicit worker (not Tesseract.recognize) — one engine load reused across pages, and the
+  // convenience wrapper can stall before it ever reports progress.
+  if(onStep) onStep(0,pdf.numPages,0);
+  // v5 takes the logger on createWorker (recognize's 3rd arg is `output`, not options) and reports
+  // both engine-load and per-page recognition through it.
+  const at={p:0,n:pdf.numPages}; let last=-1;
+  const worker=await T.createWorker("eng",1,{logger:m=>{
+    if(!onStep) return; const pc=Math.round((m.progress||0)*100);
+    if(/recognizing/i.test(m.status||"")){ if(pc>=last+25||pc===100){ last=pc; onStep(at.p,at.n,pc); } }
+    else if(/loading|initializ/i.test(m.status||"")) onStep(0,at.n,pc,m.status);
+  }});
+  let text="";
+  try{
+  for(let p=1;p<=pdf.numPages;p++){
+    const pg=await pdf.getPage(p);
+    const vp=pg.getViewport({scale:2.6});          // ~300dpi — small table figures are unreadable at 1x
+    const cv=document.createElement("canvas"); cv.width=Math.round(vp.width); cv.height=Math.round(vp.height);
+    const ctx=cv.getContext("2d",{willReadFrequently:true});
+    ctx.fillStyle="#fff"; ctx.fillRect(0,0,cv.width,cv.height);   // white base: OCR reads dark-on-light, not dark-on-transparent
+    // intent:"print" makes pdf.js drive rendering with timers instead of requestAnimationFrame — rAF is
+    // frozen while the tab is in the background, which would otherwise hang OCR the moment the user
+    // switches tabs (and always hangs in a headless/hidden pane).
+    await pg.render({canvasContext:ctx, viewport:vp, intent:"print"}).promise;
+    at.p=p; last=-1;
+    const {data}=await worker.recognize(cv);
+    // Tesseract already groups words into visual rows — that maps onto what extractPdfText produces.
+    text += (data.lines||[]).map(l=>(l.text||"").replace(/\s+$/,"")).join("\n")+"\n";
+    cv.width=cv.height=0;                           // release the bitmap
+  }
+  } finally { try{ await worker.terminate(); }catch(e){} }
+  return text;
+}
+function parseAmount(s){
+  s=String(s).replace(/[^\d.,]/g,""); if(!s) return 0;
+  const last=Math.max(s.lastIndexOf(","), s.lastIndexOf(".")); if(last<0) return parseFloat(s)||0;
+  const group=s.slice(last+1); if(group.length===3) return parseInt(s.replace(/[.,]/g,""))||0;
+  const dec=s[last], thou=dec===","?".":","; s=s.split(thou).join(""); const parts=s.split(dec);
+  s=parts.slice(0,-1).join("")+"."+parts[parts.length-1]; return parseFloat(s)||0;
+}
+function findDates(text){
+  const out=[]; let m; const re1=/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/g;
+  while((m=re1.exec(text))){ let y=+m[3]; if(y<100)y+=2000; out.push({d:new Date(y,+m[2]-1,+m[1]),idx:m.index}); }
+  const mon="(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*";
+  const re2=new RegExp("(\\d{1,2})\\s*"+mon+"\\s*(\\d{4})","ig");
+  const mm={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  while((m=re2.exec(text))){ out.push({d:new Date(+m[3],mm[m[2].slice(0,3).toLowerCase()],+m[1]),idx:m.index}); }
+  return out.filter(x=>!isNaN(x.d));
+}
+function iso(d){ return d? d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"):""; }
+function parseDoc(text, fileName){
+  const t=text.replace(/\s+/g," "), low=t.toLowerCase();
+  const r={tipe:"Invoice",no:"",klien:"",terbit:"",deadline:"",nilai:0,diskon:0,cur:"AUD",catatan:"Auto-import: "+fileName};
+  const iInv=low.indexOf("invoice"), iQuo=Math.max(low.indexOf("quotation"),low.indexOf("quote"));
+  if(iQuo>=0 && (iInv<0 || iQuo<iInv)) r.tipe="Quotation";
+  let m=t.match(/(?:invoice|quotation|quote|no|number|#)\s*[:#.]?\s*([A-Za-z]{0,6}[-\/]?\d[\w\-\/.]*)/i); if(m) r.no=m[1].toUpperCase();
+  const refM=t.match(/reference\s*[:#]?\s*([A-Za-z]{2,5}\s?\d{3,}[\w.\-]*)/i);   // Xero "Reference EVT0001" = the project/deal id
+  const invM=t.match(/\b(INV[-\s]?\d{3,}[\w\-]*)/i);
+  if(refM) r.no=refM[1].toUpperCase().replace(/\s+/g,"");
+  if(invM) r.invNo=invM[1].toUpperCase().replace(/\s+/g,"-");
+  if(/\b(idr|rp)\b/i.test(t) && !/\b(aud|a\$)\b/i.test(t)) r.cur="IDR";
+  let amt=0; const tm=t.match(/(?:grand\s*total|amount\s*due|subtotal|total)\s*[:\-]?\s*(?:aud|a?\$|idr|rp)?\s*([\d.,]{2,})/i); if(tm) amt=parseAmount(tm[1]);
+  if(!amt){ const all=[...t.matchAll(/(?:aud|a?\$|idr|rp)\s*([\d.,]{3,})/ig)].map(x=>parseAmount(x[1])); if(all.length) amt=Math.max(...all); }
+  r.nilai=amt;
+  // Xero "Subtotal (includes a discount of 188.08)" — discount is baked into the line amounts (Cl. 1: add back for Gross Revenue).
+  // The PDF wraps the row, so the subtotal amount can appear between "of" and the discount; the true discount is the number closing the ")".
+  const dm=t.match(/discount\s+of[\s\S]{0,40}?([\d.,]{2,})\s*\)/i) || t.match(/discount\s+of\s+([\d.,]{2,})/i); if(dm) r.diskon=parseAmount(dm[1]);
+  const dates=findDates(t);
+  const dl=low.search(/event|due|deadline/); if(dl>=0 && dates.length){ let best=dates[0],bd=1e15; dates.forEach(x=>{const dd=Math.abs(x.idx-dl); if(dd<bd){bd=dd;best=x;}}); r.deadline=iso(best.d); }
+  if(dates.length){ const s=dates.slice().sort((a,b)=>a.d-b.d); if(!r.terbit) r.terbit=iso(s[0].d); if(!r.deadline) r.deadline=iso(s[s.length-1].d); }
+  m=t.match(/(?:bill\s*to|sold\s*to|client|customer|proposal\s*for)\s*[:\-]?\s*([A-Z][A-Za-z0-9&.,'\- ]{2,40})/); // "Quote proposal for: Nicole Tawa · 16 Jan 2027 · Sunnyside" → keep the name only. OCR renders "·" as
+// "-" or "—", so cut on any spaced separator (a spaced dash never occurs inside a real name).
+if(m) r.klien=m[1].replace(/\s*[·|]\s*.*$/,"").replace(/\s+[–—-]\s+.*$/,"").trim();
+  if(!r.klien){                                                    // Xero invoices have no "Bill to" label — take the first real name line in the top block
+    const BOILER=/rove\s*gifts|deer\s*park|australia|tax\s*invoice|invoice|reference|quote|proposal|\babn\b|westpac|account|bsb|\bvic\b|\bnsw\b|\bqld\b|melbourne|sydney|singapore|deposit|terms|www|http|@|gifts\.com|pty\s*ltd|number|ballroom|chalet/i;
+    for(const l of text.split(/\n/).map(s=>s.trim()).filter(Boolean).slice(0,16)){
+      if(l.length<3||l.length>40) continue;
+      if(/\d/.test(l) || BOILER.test(l) || !/[A-Za-z]/.test(l)) continue;
+      if(l===l.toUpperCase()) continue;                            // skip ALL-CAPS section labels
+      r.klien=l; break;
+    }
+  }
+  if(r.tipe==="Quotation" && /\d/.test(r.no)) r.no=enqNo(r.no);   // quote numbers (Q0002.5…) → deal-number convention ENQ0002
+  return r;
+}
+
+/* ---- Line-item extraction: best-effort split of "description … amount" rows for the classify step ---- */
+const LINE_SKIP=/sub\s*total|grand\s*total|^total\b|\bgst\b|total\s*aud|amount\s*due|less\s*amount|locked\s*rate|exchange\s*rate|payment|remaining|bank|bsb|account|abn|due\s*date|invoice\s*(date|number)|quote\s*(no|valid)|valid\s*until|date\s*:|reference|attachments?|terms|conditions|rove\s*gifts|page\s*\d|full\s*unit|proposal\s*for|^date\b|event\s*date|^\s*(city|venue)\b|^\s*(quote|invoice)\s*$|item\s*\/\s*service/i;
+const QTY_NOTE=/^\(?\s*(one[\s-]?off|each|set|pair|pack|per\s*unit|per\s*pax|ea|pcs?|units?|qty|min\.?)\s*\)?$/i;   // a quantity annotation ("(one-off)") is never the item name
+function guessCat(desc, neg){
+  const d=norm(desc);
+  if(/deposit\s*already|already\s*paid|credit\s*note|less\s*deposit/.test(d)) return "credit";
+  if(neg || /discount|%\s*off|offer|voucher|one\s*fine\s*day|ofd\d/.test(d)) return "discount";
+  if(/shipping|freight|postage|delivery\s*(to|fee)|local\s.{0,15}shipping/.test(d)) return "shipping";
+  if(/live\s*stamping|live\s*monogram|live\s*service|monogram\s*service|\bhrs\b|on-?site|travel\s*(to\s*venue|fee)|consultation|event\s*(fee|execution)|sponsor/.test(d)) return "service";
+  return "hq";
+}
+/* Currency-aware money scanner. Bare integers with no currency tag and no separator
+   (qty "50", years "2026", postcodes "3023", option numbers) are NOT money. */
+function scanMoney(line, keepZero){   // keepZero: keep "0.00" cells (a fully-waived Amount in a Discount-column invoice)
+  const out=[]; const re=/(a\$|au\$|aud\b|rp\.?|idr\b|\$)?\s*([\d][\d.,]{0,14})/gi; let m;
+  while((m=re.exec(line))){
+    const raw=m[2]; const val=parseAmount(raw); if(!(val>0) && !(keepZero && val===0)) continue;
+    const tag=(m[1]||"").toLowerCase();
+    const cur=/a\$|au\$|aud/.test(tag)?"AUD":(/rp|idr/.test(tag)?"IDR":(tag==="$"?"AUD":""));
+    const sep=/[.,]/.test(raw);
+    if(/^0\d/.test(raw)) continue;      // leading-zero = a document/quote-number fragment ("Q0002.5"→"0002.5"), never a price
+    if(!cur && !sep) continue;
+    out.push({val,cur,sep,idx:m.index,len:m[0].length});
+  }
+  return out;
+}
+function pickAmt(ms,target){
+  const cand=ms.filter(x=> x.cur===target || !x.cur);   // deal-currency figures OR untagged (single-currency invoices); ignore the OTHER currency
+  if(cand.length) return cand[cand.length-1].val;         // rightmost = the Amount / Total column
+  return ms.length? ms[ms.length-1].val : 0;
+}
+function cleanDesc(line, money){
+  let desc=line;
+  (money||[]).slice().sort((a,b)=>b.idx-a.idx).forEach(t=>{ desc=desc.slice(0,t.idx)+desc.slice(t.idx+t.len); });
+  desc=desc.replace(/[\d.,]*\s*%/g," ").replace(/\bgst\b/ig," ");   // drop leaked GST / discount % columns ("… 20.00% 10%")
+  return desc.split(/\s+/).filter((w,i,arr)=>{
+    if(/^\d{1,4}$/.test(w)){ const prev=(arr[i-1]||"").toLowerCase(); return /^(option|opt\.?|concept|version|no\.?|#)$/.test(prev); }
+    return true;
+  }).join(" ").replace(/\s{2,}/g," ").replace(/^[\s·|:;,\-]+|[\s·|:;,\-]+$/g,"").slice(0,90);
+}
+const LINE_STOP=/deposit\s*already\s*paid|this\s*is\s*invoice\b|remainder\s*to\s*be\s*paid|full\s*unit\s*price/i;
+function parseLines(text, docCur){
+  const target=(docCur==="IDR")?"IDR":"AUD";
+  const tags=new Set(); text.split(/\n/).forEach(l=> scanMoney(l).forEach(m=>{ if(m.cur) tags.add(m.cur); }));
+  const dual=tags.size>1;                                         // both Rp and A$ tagged → genuine dual-currency quote (else single-currency invoice)
+  // Some invoices carry a dedicated Discount COLUMN ("Description Quantity Unit Price Discount GST Amount").
+  // Then the per-line discount is a real cell — read it from the row instead of spreading a document-level total.
+  const hasDiscCol = text.split(/\n/).some(l=>/\bdiscount\b/i.test(l) && /\bamount\b/i.test(l) && /(unit\s*price|quantity|\bqty\b)/i.test(l));
+  const out=[]; out.discCol=hasDiscCol;
+  let pending=null;   // a text-only line may be an item title whose figures sit on the next visual row (Y-split rows)
+  for(const raw of text.split(/\n/)){
+    const line=raw.trim();
+    if(LINE_STOP.test(line)) break;                               // reached the invoice notes/footer (deposit paid, "invoice 1 of 2", full unit price…) — stop the item table
+    if(line.length<4 || LINE_SKIP.test(line)){ pending=null; continue; }
+    const money=scanMoney(line, hasDiscCol);
+    if(!money.length){                                             // no figures: candidate title (or header/sub-desc — superseded by the next one)
+      pending = line.replace(/[^A-Za-z]/g,"").length>=3 ? line : null;
+      continue;
+    }
+    if(!scanMoney(line.replace(/\([^)]*\)/g," ")).length) continue; // every figure is inside ( ) → a note, e.g. "(original value $1,800)" — never a column value
+    const desc=cleanDesc(line, money);
+    const letters=desc.replace(/[^A-Za-z]/g,"").length;
+    const prev=out[out.length-1];
+    if(letters<3){                                                 // figures-only row
+      if(pending){                                                 // …right after a bare title → that IS the item (title & figures in split Y-rows)
+        const pd=cleanDesc(pending, []);
+        out.push({desc:pd, amt:pickAmt(money,target), cat:guessCat(pd,false), _money:money.slice(), _hasT:money.some(x=>x.cur===target)});
+        pending=null;
+      } else if(prev && !prev._hasT){                              // continuation while the item still lacks a deal-currency figure;
+        prev._money=prev._money.concat(money);                     // otherwise it's a stray document total and must be dropped.
+        prev.amt=pickAmt(prev._money,target);
+        prev._hasT=prev._money.some(x=>x.cur===target);
+      }
+      continue;
+    }
+    const titleCand=pending; pending=null;
+    if(/^(enq|inv|evt|quo|q|no)[\s#:.\-]*$/i.test(desc)) continue; // document-number line
+    if(dual){                                                      // dual-currency pair merge — ONLY for real Rp+A$ quotes (not for a single-currency invoice whose description happens to contain "$1,800")
+      const allT=money.every(x=>x.cur===target);
+      if(prev && !prev._hasT && allT){ prev._money=prev._money.concat(money); prev.amt=pickAmt(prev._money,target); prev._hasT=true; continue; }
+    }
+    let finalDesc=desc;
+    if(QTY_NOTE.test(desc.trim()) && titleCand){                  // desc is just a qty note ("(one-off)") → the real name is the title on the row above
+      const pd=cleanDesc(titleCand,[]); if(pd.replace(/[^A-Za-z]/g,"").length>=3) finalDesc=pd;
+    }
+    // Accounting negative = a paren wrapping ONLY a money figure "(1,234.56)" / "($500)", or a trailing -1,234.56.
+    // It must CLOSE right after the number — otherwise descriptive parentheses like "(4pcs per set)" or
+    // "(4 per box)" would be mistaken for a negative and the whole item wrongly classified as a discount.
+    const neg=/\(\s*(?:a\$|au\$|aud|rp\.?|idr|\$)?\s*[\d][\d.,]*\s*\)/i.test(line) || /-\s*(?:a\$|au\$|aud|rp\.?|idr|\$)?\s*[\d][\d.,]*\)?\s*$/i.test(line);
+    let amtV=pickAmt(money,target), discV=0;
+    if(hasDiscCol){
+      // Row cells run: Qty · Unit Price · [Discount] · [GST%] · Amount. GST "10%" is a bare int and never
+      // scans as money, so 4 figures = the Discount cell is filled; 3 = it is empty.
+      if(money.length>=4){ discV=money[money.length-2].val; amtV=money[money.length-1].val; }
+      else if(money.length){ amtV=money[money.length-1].val; }
+      amtV=Math.round((amtV+discV)*100)/100;                      // store GROSS (Cl. 1) = Amount + line discount
+    }
+    out.push({desc:finalDesc, amt:amtV, disc:discV, cat:guessCat(finalDesc,neg), _money:money.slice(), _hasT:money.some(x=>x.cur===target)});
+    if(out.length>=30) break;
+  }
+  out.forEach(o=>{ delete o._money; delete o._hasT; });
+  return out;
+}
+/* Quotes present alternatives as "Option 1/2/3…" — only ONE will be bought.
+   Keep the cheapest per option group (numbering restart = new group); set the rest to Ignore. */
+function applyOptionRule(lines){
+  const groups=[]; let cur=null,lastN=0,lastT="";
+  lines.forEach(it=>{
+    const m=(it.desc||"").match(/\b(?:option|opt\.?)\s*([0-9]{1,2}|[a-z])\b/i);
+    if(!m) return;
+    const tok=m[1].toLowerCase(); const isNum=/^\d/.test(tok);
+    const n=isNum?parseInt(tok,10):(tok.charCodeAt(0)-96); const ty=isNum?"n":"a";
+    if(!cur || ty!==lastT || n<=lastN){ cur={items:[]}; groups.push(cur); }
+    cur.items.push(it); lastN=n; lastT=ty;
+  });
+  let ignored=0;
+  groups.forEach(g=>{
+    const priced=g.items.filter(x=>x.amt>0);
+    if(priced.length<2) return;
+    const cheapest=priced.reduce((a,b)=> b.amt<a.amt?b:a);
+    g.items.forEach(x=>{ if(x!==cheapest && x.amt>0 && !["ignore","discount","credit"].includes(x.cat)){ x.cat="ignore"; ignored++; } });
+  });
+  return ignored;
+}
+
+/* ====================== FORM ====================== */
+let formCtx={};
+const F=id=>document.getElementById(id);
+function setInvVisibility(){
+  const st=F("fStatus").value;
+  F("secInv").style.display=(st==="Ongoing Project"||st==="Project Done"||st==="Project Cancel")?"":"none";   // a cancelled project keeps its invoiced history on view
+}
+function updatePhasePreview(){
+  const dl=F("fEvent").value; const pid=phaseOf(dl);
+  F("fPhasePreview").innerHTML = dl?(pid?`Delivery date → falls in <b>${pid}</b> (rate ${(phaseRate(pid)*100).toFixed(0)}% for HQ product)`:`<span style="color:var(--amber)">Delivery date outside any phase period</span>`):"Enter the delivery date to set the phase.";
+}
+function populateLink(preIdx){
+  const sel=F("fLink"); sel.innerHTML="";
+  const cands=deals.map((d,i)=>({d,i})).filter(o=>o.d.status==="Enquiry Phase"||o.d.status==="Ongoing Project");
+  cands.forEach(o=> sel.innerHTML+=`<option value="${o.i}">${esc(o.d.no)} — ${esc(o.d.klien)} (${o.d.status})</option>`);
+  sel.innerHTML+=`<option value="new">— New project (no existing enquiry) —</option>`;
+  sel.value = (preIdx!=null && cands.some(o=>o.i===preIdx)) ? String(preIdx) : "new";
+}
+/* ---- Line-item classification engine ---- */
+function lineSums(){   // Pg/Ng/Sg = GROSS per bucket · Pd/Nd/Sd = per-line discount per bucket
+  let Pg=0,Pd=0,Ng=0,Nd=0,Sg=0,Sd=0,SH=0;
+  (formCtx.lines||[]).forEach(l=>{ const a=Math.abs(parseFloat(l.amt)||0); if(!a) return; const d=Math.min(a,Math.max(0,parseFloat(l.disc)||0));
+    if(l.cat==="hq"){Pg+=a;Pd+=d;} else if(l.cat==="nonhq"){Ng+=a;Nd+=d;} else if(l.cat==="service"){Sg+=a;Sd+=d;}
+    else if(l.cat==="shipping")SH+=a; });
+  return {Pg,Pd,Ng,Nd,Sg,Sd,SH};
+}
+function applyLines(){
+  if(!(formCtx.lines&&formCtx.lines.length)){ F("lineSummary").textContent=""; return; }
+  const s=lineSums();
+  const prodNet=Math.max(0,s.Pg-s.Pd), nonNet=Math.max(0,s.Ng-s.Nd), servNet=Math.max(0,s.Sg-s.Sd);
+  const disc=s.Pd+s.Nd+s.Sd;
+  const cur=F("fCur").value||"AUD";
+  const g=v=>sym()+" "+fmt(disp(toAUD(v,cur)));
+  F("lineSummary").innerHTML=`<b>Recorded as Gross Revenue (Cl. 1):</b> HQ Product <b>${g(s.Pg)}</b>${s.Ng?` · Non-HQ <b>${g(s.Ng)}</b>`:""} · Service <b>${g(s.Sg)}</b> · shipping excluded ${g(s.SH)}${disc?`<br><span style="color:var(--text3)">Discount ${g(disc)} is <b>added back</b>, not deducted — client is invoiced ${g(prodNet+nonNet+servNet)} net, RC counts the full ${g(s.Pg+s.Ng+s.Sg)}.</span>`:""}${formCtx.optIgnored?`<br><span style="color:var(--amber)">&#9888; ${formCtx.optIgnored} pricier option line(s) auto-set to Ignore — only the cheapest option is counted. If the client chose a different option, swap which line is Ignored.</span>`:""}`;
+  if(formCtx.mode==="invoice"){
+    if(formCtx.sameCur===false) return;                  // cross-currency: never auto-sum
+    const base=formCtx.baseInv||{net:0,disc:0};
+    F("fInvNet").value=(base.net+prodNet+nonNet+servNet)||"";
+    F("fInvDisc").value=(base.disc+disc)||"";
+    const rnd=v=>Math.round((v||0)*100)/100;
+    const Y=parseInt(F("fInvY").value)||0;
+    const pct=parseFloat(F("fInvPct").value)||0;
+    // A % share wins over the "of N" count: deposits are often uneven (40/60), where × N would be wrong.
+    const mult = (pct>0&&pct<100) ? 100/pct : (Y>=2 ? Y : 0);
+    const note=F("fInvSplitNote"); if(note) note.innerHTML="";
+    if(mult>1 && formCtx.firstInv){
+      // Deposit / first instalment: project the FULL (100%) project value from this invoice's share.
+      F("fProdNet").value=rnd(prodNet*mult)||""; F("fProdDisc").value=rnd(s.Pd*mult)||"";
+      F("fNonNet").value=rnd(nonNet*mult)||""; F("fNonDisc").value=rnd(s.Nd*mult)||"";
+      F("fServNet").value=rnd(servNet*mult)||""; F("fServDisc").value=rnd(s.Sd*mult)||"";
+      formCtx.dvFull=true; formCtx.installments=Y||null; formCtx.depositPct=(pct>0&&pct<100)?pct:null;
+      const paid=prodNet+nonNet+servNet, full=rnd(paid*mult);
+      const how=(pct>0&&pct<100) ? `this invoice ÷ ${pct}%` : `this invoice × ${Y} (equal instalments)`;
+      if(note) note.innerHTML=`<span style="color:var(--gold2)">Deal Value projected to <b>${g(full)}</b> (100%) = ${how}. Invoiced <b>${g(paid)}</b> (${rnd(100/mult)}%) · balance <b>${g(rnd(full-paid))}</b> (${rnd(100-100/mult)}%) shows as Potential until the rest is invoiced.</span>`;
+    } else if(formCtx.dealDvFull){
+      // Deal value already holds the full projected amount → later instalments only fill Invoiced; leave Deal Value as-is.
+      formCtx.dvFull=true;
+      if(note) note.textContent="Deal Value already set to the full project — this invoice adds to Invoiced only.";
+    } else {
+      // Normal: deal value follows the invoices (first replaces, later accumulate).
+      formCtx.dvFull=false;
+      const b=formCtx.dealValBase||{prodNet:0,prodDisc:0,nonHqNet:0,nonHqDisc:0,servNet:0,servDisc:0};
+      F("fProdNet").value=(b.prodNet+prodNet)||""; F("fProdDisc").value=(b.prodDisc+s.Pd)||"";
+      F("fNonNet").value=(b.nonHqNet+nonNet)||""; F("fNonDisc").value=(b.nonHqDisc+s.Nd)||"";
+      F("fServNet").value=(b.servNet+servNet)||""; F("fServDisc").value=(b.servDisc+s.Sd)||"";
+    }
+  } else if(!formCtx.dealDvFull){                          // edit / new / quoteReplace — but never auto-overwrite a full projected value from the deposit's line items
+    F("fProdNet").value=prodNet||""; F("fProdDisc").value=s.Pd||"";
+    if(s.Ng>0){ F("fNonNet").value=nonNet; F("fNonDisc").value=s.Nd||""; }
+    if(s.Sg>0){ F("fServNet").value=servNet; F("fServDisc").value=s.Sd||""; }
+  }
+}
+/* EDIT mode instalment split. There is no "this invoice" here, so the full project is derived from the
+   INVOICED-to-date figure: Deal Value = invoiced ÷ share. Existing bucket proportions are preserved, so a
+   deal uploaded before the splitter existed can be retro-fitted (e.g. a 50% deposit deal → "1 of 2"). */
+function projectFromInvoiced(){
+  const note=F("fInvSplitNote"); const rnd=v=>Math.round((v||0)*100)/100;
+  const Y=parseInt(F("fInvY").value)||0, pct=parseFloat(F("fInvPct").value)||0;
+  const mult=(pct>0&&pct<100)?100/pct:(Y>=2?Y:0);
+  if(!(mult>1)){ if(note) note.innerHTML=""; formCtx.dvFull=false; formCtx.installments=null; formCtx.depositPct=null; return; }
+  const invN=parseFloat(F("fInvNet").value)||0, invD=parseFloat(F("fInvDisc").value)||0;
+  if(!(invN>0)){ if(note) note.innerHTML=`<span style="color:var(--amber)">&#9888; Enter the invoiced amount first — the full project value is derived from it.</span>`; return; }
+  const bn=[["fProdNet",0],["fNonNet",0],["fServNet",0]].map(([id])=>parseFloat(F(id).value)||0);
+  const bd=[["fProdDisc",0],["fNonDisc",0],["fServDisc",0]].map(([id])=>parseFloat(F(id).value)||0);
+  const netTot=bn[0]+bn[1]+bn[2], discTot=bd[0]+bd[1]+bd[2];
+  const fullNet=rnd(invN*mult), fullDisc=rnd(invD*mult);
+  if(netTot>0){ const f=fullNet/netTot;                       // keep the existing product/service split
+    F("fProdNet").value=rnd(bn[0]*f)||""; F("fNonNet").value=rnd(bn[1]*f)||""; F("fServNet").value=rnd(bn[2]*f)||"";
+  } else { F("fProdNet").value=fullNet||""; }
+  if(discTot>0){ const fd=fullDisc/discTot;
+    F("fProdDisc").value=rnd(bd[0]*fd)||""; F("fNonDisc").value=rnd(bd[1]*fd)||""; F("fServDisc").value=rnd(bd[2]*fd)||"";
+  } else if(fullDisc>0){ F("fProdDisc").value=fullDisc||""; }
+  formCtx.dvFull=true; formCtx.dealDvFull=true;              // line edits must not clobber the projection
+  formCtx.installments=Y||null; formCtx.depositPct=(pct>0&&pct<100)?pct:null;
+  const cur=F("fCur").value||"AUD"; const g=v=>sym()+" "+fmt(disp(toAUD(v,cur)));
+  const how=(pct>0&&pct<100)?`invoiced ÷ ${pct}%`:`invoiced × ${Y} (equal instalments)`;
+  if(note) note.innerHTML=`<span style="color:var(--gold2)">Deal Value set to <b>${g(fullNet)}</b> (100%) = ${how}. Invoiced <b>${g(invN)}</b> (${rnd(100/mult)}%) · balance <b>${g(rnd(fullNet-invN))}</b> (${rnd(100-100/mult)}%) counts as Potential.</span>`;
+}
+function renderLines(){
+  const box=F("lineRows"); box.innerHTML="";
+  const CATS=[["hq","HQ Product (phase rate)"],["nonhq","Non-HQ Product (5%)"],["service","Service (5%)"],["shipping","Shipping (excluded)"],["ignore","Ignore (not counted)"]];
+  const cur=esc(F("fCur").value||"AUD");
+  const rnd=v=>Math.round((v||0)*100)/100;
+  if((formCtx.lines||[]).length){
+    const h=document.createElement("div"); h.className="lrow";
+    const hs="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--text3)";
+    h.innerHTML=`<div class="ldesc" style="${hs}">Item</div><div class="lnum" style="${hs};text-align:right">Gross ${cur}</div><div class="lnum" style="${hs};text-align:right">Discount</div><div class="lnum" style="${hs};text-align:right">Net</div><div class="lcat" style="${hs}">Royalty type</div><div style="width:24px"></div>`;
+    box.appendChild(h);
+  }
+  (formCtx.lines||[]).forEach((l,i)=>{
+    const row=document.createElement("div"); row.className="lrow";
+    row.innerHTML=`<input class="ldesc" value="${esc(l.desc)}" placeholder="Item"/>`
+      +`<input class="lnum lgross" type="number" step="0.01" value="${l.amt||""}" placeholder="0" title="Gross (pre-discount)"/>`
+      +`<input class="lnum ldisc" type="number" step="0.01" value="${l.disc||""}" placeholder="0" title="Discount amount"/>`
+      +`<input class="lnum lnet" type="number" value="${rnd((+l.amt||0)-(+l.disc||0))||""}" readonly tabindex="-1" title="Net = Gross − Discount"/>`
+      +`<select class="lcat">${CATS.map(c=>`<option value="${c[0]}"${c[0]===l.cat?" selected":""}>${c[1]}</option>`).join("")}</select>`
+      +`<button class="ldel" type="button" title="Remove line">&#10005;</button>`;
+    const netEl=row.querySelector(".lnet");
+    row.querySelector(".ldesc").oninput=e=>{ l.desc=e.target.value; };
+    row.querySelector(".lgross").oninput=e=>{ l.amt=parseFloat(e.target.value)||0; netEl.value=rnd(l.amt-(+l.disc||0))||""; applyLines(); };
+    row.querySelector(".ldisc").oninput=e=>{ l.disc=parseFloat(e.target.value)||0; netEl.value=rnd((+l.amt||0)-l.disc)||""; applyLines(); };
+    row.querySelector(".lcat").onchange=e=>{ l.cat=e.target.value; applyLines(); };
+    row.querySelector(".ldel").onclick=()=>{ formCtx.lines.splice(i,1); renderLines(); applyLines(); };
+    box.appendChild(row);
+  });
+}
+
+function fillForm(){
+  const p=formCtx.parsed||null;
+  let d=null, idx=null;
+  if(formCtx.mode==="invoice"){ const v=F("fLink").value; idx = v==="new"?null:+v; d = idx!=null?deals[idx]:null; }
+  else if(formCtx.dealIdx!=null){ idx=formCtx.dealIdx; d=deals[idx]; }
+  formCtx.targetIdx=idx;
+
+  const hint=F("fInvHint");
+  hint.style.display="none"; hint.textContent="";
+
+  if(formCtx.mode==="invoice"){
+    const addNet=p?(+p.nilai||0):0, addDisc=p?(+p.diskon||0):0;
+    if(d){
+      const sameCur = !p || (p.cur||"AUD")===(d.cur||"AUD");     // never pre-sum across currencies
+      formCtx.sameCur=sameCur; formCtx.baseInv={net:+d.invNet||0, disc:+d.invDisc||0};
+      const addN=sameCur?addNet:0, addD=sameCur?addDisc:0;
+      const firstInv = d.status==="Enquiry Phase";   // converting an enquiry → first invoice replaces the quote value; an already-Ongoing deal accumulates
+      formCtx.firstInv = firstInv; formCtx.dealDvFull = !!d.dvFull; formCtx.dvFull = !!d.dvFull;
+      formCtx.dealValBase = firstInv
+        ? {prodNet:0,prodDisc:0,nonHqNet:0,nonHqDisc:0,servNet:0,servDisc:0}
+        : {prodNet:+d.prodNet||0,prodDisc:+d.prodDisc||0,nonHqNet:+d.nonHqNet||0,nonHqDisc:+d.nonHqDisc||0,servNet:+d.servNet||0,servDisc:+d.servDisc||0};
+      const priorInv=(String(d.invRefs||"").split(",").filter(x=>x.trim()).length);   // how many invoices already recorded
+      F("fInvX").value = firstInv ? 1 : (priorInv+1);
+      F("fInvY").value = d.installments || "";
+      F("fInvPct").value = d.depositPct || "";
+      const invRefNo = (p && isProjRef(p.no)) ? p.no.toUpperCase().replace(/\s+/g,"") : d.no;  // invoicing an enquiry adopts the invoice reference (ENQ0002 → EVT0002)
+      formCtx.numChanged = invRefNo!==d.no ? {from:d.no, to:invRefNo} : null;
+      F("fNo").value=invRefNo; F("fKlien").value=d.klien; F("fEvent").value=d.eventDate||"";
+      F("fStatus").value = d.status==="Project Done"?"Project Done":"Ongoing Project";
+      F("fProdNet").value=d.prodNet||""; F("fProdDisc").value=d.prodDisc||"";
+      F("fNonNet").value=d.nonHqNet||""; F("fNonDisc").value=d.nonHqDisc||"";
+      F("fServNet").value=d.servNet||""; F("fServDisc").value=d.servDisc||"";
+      F("fInvNet").value=((+d.invNet||0)+addN)||"";
+      F("fInvDisc").value=((+d.invDisc||0)+addD)||"";
+      F("fInvRefs").value=[d.invRefs,p?(p.invNo||p.no):""].filter(Boolean).join(", ");
+      F("fCur").value=d.cur||"AUD"; F("fNotes").value=d.notes||"";
+      if(p&&!sameCur){ hint.style.display=""; hint.innerHTML=`<span style="color:var(--red)">&#9888; Parsed invoice is in <b>${esc(p.cur)}</b> but this deal is in <b>${esc(d.cur||"AUD")}</b> — amounts were NOT pre-added. Convert manually and update the invoiced totals below.</span>`; }
+      else if(p){ const numNote = formCtx.numChanged ? ` <b style="color:var(--gold2)">Deal number updates ${esc(formCtx.numChanged.from)} → ${esc(formCtx.numChanged.to)}</b> (invoice reference).` : ""; hint.style.display=""; hint.innerHTML=`Adding <b>${esc(p.invNo||p.no)||"invoice"}</b>: +${esc(p.cur)} ${fmt(addNet)} net${addDisc?` (+${fmt(addDisc)} discount)`:""} to the totals below.${numNote} <b>Deal value</b> above now tracks the invoices. If this is a <b>deposit / invoice 1 of 2</b>, raise the Deal Value to the full agreed amount — the unbilled balance then shows as <b>Potential</b> until the next invoice arrives.`; }
+      else { hint.style.display=""; hint.innerHTML=`Enter the new cumulative invoiced totals (add this invoice's amounts to the existing figures).`; }
+    } else {
+      formCtx.sameCur=true; formCtx.baseInv={net:0,disc:0};
+      formCtx.firstInv=true; formCtx.dealDvFull=false; formCtx.dealValBase={prodNet:0,prodDisc:0,nonHqNet:0,nonHqDisc:0,servNet:0,servDisc:0};
+      F("fInvX").value=1; F("fInvY").value=""; F("fInvPct").value="";
+      F("fNo").value=p?baseNo(p.no):""; F("fKlien").value=p?p.klien:""; F("fEvent").value=p?(p.deadline||""):"";
+      F("fStatus").value="Ongoing Project";
+      F("fProdNet").value=addNet||""; F("fProdDisc").value=addDisc||"";
+      F("fNonNet").value=""; F("fNonDisc").value="";
+      F("fServNet").value=""; F("fServDisc").value="";
+      F("fInvNet").value=addNet||""; F("fInvDisc").value=addDisc||"";
+      F("fInvRefs").value=p?(p.invNo||p.no||""):"";
+      F("fCur").value=p?(p.cur||"AUD"):"AUD"; F("fNotes").value="";
+      hint.style.display=""; hint.innerHTML=`New project from this invoice. Deal value defaults to the invoice amount — increase it if this is a deposit (e.g. 50%).`;
+    }
+  } else if(formCtx.mode==="quoteReplace" && d){
+    F("fNo").value=d.no; F("fKlien").value=d.klien||(p?p.klien:"");
+    F("fEvent").value=d.eventDate||(p?p.deadline:"")||"";
+    F("fStatus").value = d.status==="Enquiry Cancel" ? "Enquiry Phase" : d.status;   // preserve status; a new quote revives a cancelled enquiry, never downgrades an Ongoing/Done project
+    F("fProdNet").value=p?(+p.nilai||0):""; F("fProdDisc").value=p?(+p.diskon||0):"";
+    F("fNonNet").value=d.nonHqNet||""; F("fNonDisc").value=d.nonHqDisc||"";
+    F("fServNet").value=d.servNet||""; F("fServDisc").value=d.servDisc||"";
+    F("fInvNet").value=d.invNet||""; F("fInvDisc").value=d.invDisc||""; F("fInvRefs").value=d.invRefs||"";
+    F("fCur").value=p?(p.cur||d.cur||"AUD"):(d.cur||"AUD"); F("fNotes").value=d.notes||"";
+    const oldA=amounts(d);
+    const statNote = (d.status==="Ongoing Project"||d.status==="Project Done") ? ` This deal is already <b>${d.status}</b> — the new quotation updates its project value; invoiced amounts are kept.` : (d.status==="Enquiry Cancel" ? ` This enquiry was cancelled — saving revives it to Enquiry Phase.` : ``);
+    F("formHint").innerHTML=`Replacing the previous version of <b>${esc(d.no)}</b> (current deal value ${fmtD(oldA.dv)}). The new amounts below overwrite it; the old value is kept in the deal history. <b>Service fields kept from the previous version</b> — if the parsed Product total also includes the service portion, deduct it from Product.${statNote}`;
+  } else if(formCtx.mode==="edit" && d){
+    formCtx.dealDvFull = !!d.dvFull;   // keep a full projected deal value; don't auto-recompute it from the deposit's line items
+    formCtx.dvFull = !!d.dvFull; formCtx.installments = d.installments||null; formCtx.depositPct = d.depositPct||null;
+    F("fNo").value=d.no; F("fKlien").value=d.klien; F("fEvent").value=d.eventDate||"";
+    F("fStatus").value=d.status;
+    F("fProdNet").value=d.prodNet||""; F("fProdDisc").value=d.prodDisc||"";
+    F("fNonNet").value=d.nonHqNet||""; F("fNonDisc").value=d.nonHqDisc||"";
+    F("fServNet").value=d.servNet||""; F("fServDisc").value=d.servDisc||"";
+    F("fInvNet").value=d.invNet||""; F("fInvDisc").value=d.invDisc||""; F("fInvRefs").value=d.invRefs||"";
+    F("fCur").value=d.cur||"AUD"; F("fNotes").value=d.notes||"";
+    F("fInvX").value = d.installments ? 1 : "";
+    F("fInvY").value = d.installments || "";
+    F("fInvPct").value = d.depositPct || "";
+    F("fInvSplitNote").innerHTML = d.dvFull
+      ? `<span style="color:var(--text3)">Deal Value is a <b>projected full (100%)</b> figure${d.depositPct?` — invoiced was ${d.depositPct}%`:(d.installments?` — invoice 1 of ${d.installments}`:"")}. Change the split to re-project, or clear both boxes and type the value by hand.</span>`
+      : `<span style="color:var(--text3)">Deposit deal? Enter <b>1 of 2</b> (equal split) or the <b>%</b> this invoice covers — the full project value is worked out from the invoiced amount.</span>`;
+  } else { // new blank or new quote
+    F("fNo").value=p?baseNo(p.no):""; F("fKlien").value=p?p.klien:"";
+    F("fEvent").value=p?(p.deadline||""):"";
+    F("fStatus").value="Enquiry Phase";
+    F("fProdNet").value=p?(+p.nilai||0):""; F("fProdDisc").value=p?(+p.diskon||0):"";
+    F("fNonNet").value=""; F("fNonDisc").value="";
+    F("fServNet").value=""; F("fServDisc").value="";
+    F("fInvNet").value=""; F("fInvDisc").value=""; F("fInvRefs").value="";
+    F("fCur").value=p?(p.cur||"AUD"):"AUD"; F("fNotes").value="";
+    if(p) F("formHint").innerHTML=`New enquiry from <b>${esc(p.no)||"quotation"}</b>. Classify the line items above — HQ / Non-HQ / Service are summed into the fields below automatically.`;
+  }
+  setInvVisibility(); updatePhasePreview();
+  renderLines(); applyLines();
+}
+function openForm(opts={}){
+  formCtx=opts;
+  if(opts.parsed && opts.parsed.lines){                       // FRESH UPLOAD: classify + distribute discount per line
+    formCtx.lines=opts.parsed.lines.map(l=>({...l}));
+    formCtx.optIgnored=applyOptionRule(formCtx.lines);         // quotes list alternatives — count only the cheapest option
+    formCtx.lines.forEach(l=>{ if(l.disc==null) l.disc=0; });
+    const pp=opts.parsed;
+    const discLines=formCtx.lines.filter(l=>l.cat==="discount");
+    const colDisc=formCtx.lines.some(l=>(+l.disc||0)>0);   // invoice had a real Discount COLUMN — per-line discounts are already exact, never re-spread
+    if(colDisc){ /* nothing to distribute */ }
+    else if(discLines.length){                         // ENQ-style: item lines already GROSS; spread the discount line(s) across products
+      const total=discLines.reduce((s,l)=>s+Math.abs(+l.amt||0),0);
+      formCtx.lines=formCtx.lines.filter(l=>l.cat!=="discount");
+      const prod=formCtx.lines.filter(l=>(l.cat==="hq"||l.cat==="nonhq")&&(+l.amt)>0);
+      const g=prod.reduce((s,l)=>s+(+l.amt),0);
+      if(g>0&&total>0) prod.forEach(l=>l.disc=Math.round(total*(+l.amt)/g*100)/100);
+    } else if(+(pp.diskon||0)>0){                      // Xero-style: item lines NET; scale up to GROSS + per-line discount
+      const total=+pp.diskon;
+      const prod=formCtx.lines.filter(l=>(l.cat==="hq"||l.cat==="nonhq")&&(+l.amt)>0);
+      const n=prod.reduce((s,l)=>s+(+l.amt),0);
+      if(n>0){ const f=(n+total)/n; prod.forEach(l=>{ const gr=Math.round((+l.amt)*f*100)/100; l.disc=Math.round((gr-(+l.amt))*100)/100; l.amt=gr; }); }
+    }
+  } else if(opts.mode==="edit" && opts.dealIdx!=null && deals[opts.dealIdx] && Array.isArray(deals[opts.dealIdx].lines)){
+    formCtx.lines=deals[opts.dealIdx].lines.map(l=>({...l}));  // EDIT: reload the deal's stored line items so they can be edited
+    formCtx.optIgnored=0;
+  } else { formCtx.lines=[]; formCtx.optIgnored=0; }
+  F("secLines").style.display="";    // always available — manual "+ Add" itemises the same way as a PDF upload
+  F("lineSecLab").textContent = formCtx.lines.length ? "Line items — classify each" : "Line items — add each product / service";
+  const isInv=opts.mode==="invoice";
+  F("linkRow").style.display=isInv?"":"none";
+  // Instalment splitter: when adding an invoice, and in Edit so deals saved before it existed can be retro-fitted.
+  const showInstal = isInv || opts.mode==="edit";
+  F("rowInstal").style.display = showInstal ? "" : "none";
+  F("instalLab").textContent = isInv
+    ? "Instalments — invoice # of # · or this invoice's share of the project"
+    : "Instalments — deposit deal? set the split and the full project value is derived from Invoiced";
+  F("instalPctLab").textContent = isInv ? "· this invoice =" : "· invoiced =";
+  if(isInv) populateLink(opts.dealIdx!=null?opts.dealIdx:null);
+  F("formTitle").textContent =
+    opts.mode==="invoice" ? "Invoice — Link to Project" :
+    opts.mode==="quoteReplace" ? "New Quotation Version" :
+    opts.mode==="edit" ? "Edit Deal" : "Add Enquiry / Project";
+  F("formHint").textContent="Review & complete the fields.";
+  fillForm();
+  if(opts.parsed && opts.parsed.viaOcr){   // OCR can misread digits — make that impossible to miss
+    F("formHint").innerHTML=`<span style="color:var(--amber)">&#9888; <b>Read by OCR</b> (scanned/image PDF) — every figure below was recognised from pixels and <b>must be checked against the PDF</b>, especially amounts and the client name.</span>`;
+  }
+  F("ovForm").classList.add("show");
+}
+F("fLink").onchange=fillForm;
+F("fStatus").onchange=setInvVisibility;
+F("fEvent").oninput=updatePhasePreview;
+// instalment split / deposit % → re-project the deal value. Adding an invoice projects from THIS invoice's
+// lines (applyLines); editing projects from the invoiced-to-date figure (there is no "this invoice").
+const onInstal=()=>{ if(formCtx.mode==="invoice") applyLines(); else projectFromInvoiced(); };
+F("fInvY").oninput=onInstal; F("fInvX").oninput=onInstal; F("fInvPct").oninput=onInstal;
+F("fInvNet").oninput=()=>{ if(formCtx.mode==="edit") projectFromInvoiced(); };
+F("addLineBtn").onclick=()=>{ formCtx.lines=formCtx.lines||[]; formCtx.lines.push({desc:"",amt:0,cat:"hq"}); F("secLines").style.display=""; renderLines(); };
+
+F("saveDoc").onclick=()=>{
+  const o={
+    no:F("fNo").value.trim(), klien:F("fKlien").value.trim(), eventDate:F("fEvent").value,
+    status:F("fStatus").value, cur:F("fCur").value, notes:F("fNotes").value.trim(),
+    prodNet:parseFloat(F("fProdNet").value)||0, prodDisc:parseFloat(F("fProdDisc").value)||0,
+    nonHqNet:parseFloat(F("fNonNet").value)||0, nonHqDisc:parseFloat(F("fNonDisc").value)||0,
+    servNet:parseFloat(F("fServNet").value)||0, servDisc:parseFloat(F("fServDisc").value)||0,
+    invNet:parseFloat(F("fInvNet").value)||0, invDisc:parseFloat(F("fInvDisc").value)||0,
+    invRefs:F("fInvRefs").value.trim()
+  };
+  if(formCtx.mode==="invoice" || formCtx.mode==="edit"){   // remember whether the deal value is a full projected amount (from an instalment split)
+    o.dvFull = !!formCtx.dvFull;
+    o.installments = formCtx.dvFull ? (formCtx.installments || parseInt(F("fInvY").value) || undefined) : undefined;
+    o.depositPct = formCtx.dvFull ? (formCtx.depositPct || parseFloat(F("fInvPct").value) || undefined) : undefined;
+  }
+  let classLog="";
+  let cleanLines=null;
+  if(formCtx.lines&&formCtx.lines.length){ const s=lineSums(); const disc=s.Pd+s.Nd+s.Sd;
+    classLog=`items classified (gross) — HQ ${fmt(s.Pg)} · Non-HQ ${fmt(s.Ng)} · Service ${fmt(s.Sg)} · shipping excl ${fmt(s.SH)}${disc?` · discount ${fmt(disc)} (added back, Cl. 1)`:""}`;
+    cleanLines=formCtx.lines.map(l=>({desc:(l.desc||"").trim(),amt:parseFloat(l.amt)||0,disc:parseFloat(l.disc)||0,cat:l.cat||"ignore"})).filter(l=>l.amt||l.desc);
+  }
+  // Line-item list stored on the deal (shown when reviewing / editing):
+  //  · new / quoteReplace / edit → these lines ARE the list.
+  //  · FIRST invoice (converting an enquiry, or a deal with no items yet) → REPLACE the quotation's
+  //    estimate items with the real invoice items.
+  //  · a FURTHER invoice on an already-Ongoing/Done project → APPEND its items below the previous ones,
+  //    so a bill split across several invoices accumulates its full item list.
+  let linesMode="";
+  if(cleanLines){
+    const ex = formCtx.targetIdx!=null ? deals[formCtx.targetIdx] : null;
+    if(formCtx.mode==="invoice" && ex){
+      const firstInvoice = ex.status==="Enquiry Phase";   // same rule as the deal-value base: enquiry→replace, Ongoing→accumulate
+      if(firstInvoice){ o.lines=cleanLines; linesMode=`item list set from invoice (${cleanLines.length}) — replaced quotation estimate`; }
+      else { o.lines=(Array.isArray(ex.lines)?ex.lines:[]).concat(cleanLines); linesMode=`appended ${cleanLines.length} invoice item(s) — list now ${o.lines.length}`; }
+    } else {
+      o.lines=cleanLines;
+    }
+  }
+  if(!o.no && !o.klien){ alert("Enter at least a Deal No or a Client name before saving."); return; }
+  const p=formCtx.parsed||null;
+  const idx=formCtx.targetIdx;
+  if(idx!=null && deals[idx]){
+    const d=deals[idx]; const before=amounts(d);
+    const wasStatus=d.status;
+    Object.assign(d,o);
+    if(!d.log) d.log=[];
+    const after=amounts(d);
+    if(formCtx.mode==="invoice"){
+      d.log.push(`${todayStr()} — ${p?("invoice "+(p.no||"?")+" added"):"invoiced totals updated"}; invoiced now ${fmtD(after.inv)}${wasStatus==="Enquiry Phase"?" · converted from Enquiry Phase to Ongoing Project":""}`);
+    } else if(formCtx.mode==="quoteReplace"){
+      d.log.push(`${todayStr()} — superseded by ${p?(p.no||"new version"):"new version"}: deal value ${fmtD(before.dv)} → ${fmtD(after.dv)}`);
+    } else {
+      d.log.push(`${todayStr()} — edited${wasStatus!==o.status?` · status ${wasStatus} → ${o.status}`:""}`);
+    }
+    if(linesMode) d.log.push(`${todayStr()} — ${linesMode}`);
+    if(classLog) d.log.push(`${todayStr()} — ${classLog}`);
+  } else {
+    o.log=[`${todayStr()} — created${p?` from ${p.no||"upload"}`:""}${o.status!=="Enquiry Phase"?` as ${o.status}`:""}`];
+    if(classLog) o.log.push(`${todayStr()} — ${classLog}`);
+    deals.push(o);
+  }
+  saveDeals(); F("ovForm").classList.remove("show"); render();
+  if(formCtx.fromQueue){ queue.shift(); formCtx={}; if(queue.length){ F("ovUpload").classList.add("show"); pumpQueue(); } else resetUploadUI(); }
+};
+function cancelForm(){   // single dismiss path — Cancel button AND backdrop click both advance the upload queue
+  F("ovForm").classList.remove("show");
+  if(formCtx.fromQueue){ queue.shift(); formCtx={}; logp("Skipped."); if(queue.length){ F("ovUpload").classList.add("show"); pumpQueue(); } else resetUploadUI(); }
+}
+F("closeForm").onclick=cancelForm;
+
+/* ====================== UPLOAD ====================== */
+const drop=F("drop"), pdfFile=F("pdfFile"), plog=F("parselog");
+function logp(s){ plog.style.display="block"; plog.textContent+=s+"\n"; plog.scrollTop=plog.scrollHeight; }
+let queue=[];
+let invTarget=null;   // when set, the next uploaded PDF is forced-linked to this deal index (the +Inv flow)
+function startInvoiceUpload(idx){
+  invTarget=idx; queue=[]; const d=deals[idx];
+  plog.textContent=""; plog.style.display="none";
+  F("uploadTitle").textContent="Add Invoice — "+(d.no||"")+" · "+(d.klien||"");
+  F("uploadHint").innerHTML=`Upload the invoice PDF for <b>${esc(d.no||"")}${d.klien?" — "+esc(d.klien):""}</b>. Each line item is parsed so you can classify it (HQ / Non-HQ / Service), exactly like the first upload. The invoice is linked to <b>this</b> project.`;
+  F("manualInv").style.display="";
+  F("ovUpload").classList.add("show");
+}
+function resetUploadUI(){
+  invTarget=null;
+  F("uploadTitle").textContent="Upload Quotation / Invoice (PDF)";
+  F("uploadHint").innerHTML='The system reads the PDF, matches it to an existing enquiry/project, and pre-fills the form. <b>Always review</b> before saving.';
+  F("manualInv").style.display="none";
+}
+async function handleFiles(files){ queue=queue.concat([...files]); plog.style.display="block"; if(queue.length>1) logp(queue.length+" files queued — confirm one by one."); pumpQueue(); }
+function afterParse(p){
+  if(invTarget!=null && deals[invTarget]){            // +Inv flow: force-link to the chosen project regardless of client/type auto-match
+    const d=deals[invTarget];
+    logp(`→ linking ${p.tipe||"document"} ${p.no||""} to ${d.no} (${d.klien}).`);
+    openForm({mode:"invoice",dealIdx:invTarget,parsed:p,fromQueue:true});
+    return;
+  }
+  if(p.tipe==="Quotation"){
+    const b=norm(baseNo(p.no));
+    const idx=b?deals.findIndex(d=>norm(baseNo(d.no))===b):-1;
+    if(idx>=0){ logp(`→ matches existing ${deals[idx].no} (${deals[idx].klien}) — replacing quote version.`); openForm({mode:"quoteReplace",dealIdx:idx,parsed:p,fromQueue:true}); }
+    else openForm({mode:"new",parsed:p,fromQueue:true});
+  } else {
+    const cand=deals.map((d,i)=>({d,i})).filter(o=>o.d.status==="Enquiry Phase"||o.d.status==="Ongoing Project");
+    const best=cand.find(o=>clientMatch(o.d.klien,p.klien));
+    if(best) logp(`→ client matches ${best.d.no} (${best.d.klien}) — review the link below.`);
+    openForm({mode:"invoice",dealIdx:best?best.i:null,parsed:p,fromQueue:true});
+  }
+}
+let pumping=false;
+async function pumpQueue(){
+  if(pumping) return;                                                        // a parse is already in flight
+  if(F("ovForm").classList.contains("show") && formCtx.fromQueue) return;    // form open for queue[0] — it advances on save/cancel
+  if(!queue.length) return;
+  pumping=true; const f=queue[0];
+  try{
+    logp("Reading: "+f.name+" …");
+    let text=await extractPdfText(f), viaOcr=false;
+    if(text.replace(/\s/g,"").length<30){   // no text layer → scanned/image PDF: read the pixels instead
+      logp("   no text layer — this PDF is a scan/image. Starting OCR (first run downloads the engine, ~20-40s)…");
+      try{
+        text=await ocrPdfText(f,(p,n,pc,status)=>logp(p?`   OCR page ${p}/${n} … ${pc}%`:`   ${status||"loading OCR engine"} … ${pc}%`));
+        viaOcr=true;
+      }catch(e){
+        logp("✗ OCR failed: "+(e.message||e));
+        logp('   → Add this one by hand with "+ Add", or re-export the PDF from the app that made it.');
+        queue.shift(); pumping=false; pumpQueue(); return;
+      }
+      if(text.replace(/\s/g,"").length<30){
+        logp(`✗ ${f.name}: OCR could not read anything — the scan may be too low-resolution or skewed.`);
+        logp('   → Add this one by hand with "+ Add".');
+        queue.shift(); pumping=false; pumpQueue(); return;
+      }
+      logp(`   OCR done — ${text.split("\n").filter(l=>l.trim()).length} line(s) recognised. Figures are OCR-read: check every one.`);
+    }
+    const parsed=parseDoc(text,f.name);
+    parsed.viaOcr=viaOcr;
+    parsed.lines=parseLines(text, parsed.cur);
+    logp(`→ ${parsed.tipe} ${parsed.no||"(no?)"} · ${parsed.klien||"(client?)"} · ${parsed.cur} ${fmt(parsed.nilai)} · ${parsed.lines.length} line item(s) detected (queue left: ${queue.length-1})`);
+    F("ovUpload").classList.remove("show");
+    pumping=false;
+    afterParse(parsed);
+  }catch(e){ logp("✗ Failed "+f.name+": "+(e.message||e)); queue.shift(); pumping=false; pumpQueue(); }
+}
+drop.onclick=()=>pdfFile.click();
+pdfFile.onchange=e=>{ handleFiles([...e.target.files]); e.target.value=""; };
+;["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag");}));
+;["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag");}));
+drop.addEventListener("drop",e=>handleFiles([...e.dataTransfer.files].filter(f=>f.type==="application/pdf")));
+F("uploadBtn").onclick=()=>{ resetUploadUI(); plog.textContent=""; plog.style.display="none"; F("ovUpload").classList.add("show"); };
+F("closeUpload").onclick=()=>{ F("ovUpload").classList.remove("show"); resetUploadUI(); };
+F("manualInv").onclick=()=>{ const idx=invTarget; F("ovUpload").classList.remove("show"); resetUploadUI(); if(idx!=null) openForm({mode:"invoice",dealIdx:idx}); };
+F("addBtn").onclick=()=>openForm({mode:"new"});
+F("resetBtn").onclick=()=>{
+  if(RO()) return;
+  if(!confirm(`Clear ALL ${deals.length} deal(s) and start with an empty tracker? This clears the Google Sheet database too — export first if you want a backup.`)) return;
+  deals=[]; isSeed=false; saveDeals(); render();
+};
+
+/* ====================== IMPORT / EXPORT ====================== */
+const CSVHEAD=["no","klien","eventDate","status","cur","prodNet","prodDisc","nonHqNet","nonHqDisc","servNet","servDisc","invNet","invDisc","invRefs","notes","log"];
+F("exportBtn").onclick=()=>{
+  const rows=[CSVHEAD.join(",")].concat(deals.map(d=> CSVHEAD.map(h=>{
+    let v = h==="log" ? (d.log||[]).join(" | ") : (d[h]??"");
+    return `"${String(v).replace(/"/g,'""')}"`;
+  }).join(",")));
+  const blob=new Blob([rows.join("\n")],{type:"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="rove-rc-deals.csv"; a.click();
+};
+/* "Send to team" was removed in the cloud build — the live URL + read-only passcode replaces it. */
+F("importBtn").onclick=()=>{ if(RO()) return; F("importFile").click(); };
+F("importFile").onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return; const text=await f.text();
+  const splitLine=l=> l.includes('"') ? [...l.matchAll(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g)].map(m=>m[1].replace(/^"|"$/g,"").replace(/""/g,'"')) : l.split(",");
+  const lines=text.split(/\r?\n/).filter(x=>x.trim()); const head=splitLine(lines.shift()).map(s=>s.trim());
+  const parsed=lines.map(l=>{ const c=splitLine(l); const o={}; head.forEach((h,i)=>o[h]=(c[i]||"").trim());
+    ["prodNet","prodDisc","nonHqNet","nonHqDisc","servNet","servDisc","invNet","invDisc"].forEach(k=>o[k]=parseFloat(o[k])||0);
+    o.log = o.log? String(o.log).split(" | ").filter(Boolean) : [];
+    if(!STATUSES.includes(o.status)) o.status="Enquiry Phase";
+    return o; });
+  const msg = isSeed
+    ? "Import "+parsed.length+" deals? This will REPLACE the current starter data ("+deals.length+" deals). Export first if you want to keep it."
+    : "Import "+parsed.length+" deals? They will be ADDED to the existing "+deals.length+" deals.";
+  if(confirm(msg)){ if(isSeed){deals=[];isSeed=false;} deals=deals.concat(parsed); saveDeals(); render(); }
+  e.target.value="";
+};
+
+/* ====================== CONTROLS ====================== */
+document.querySelectorAll("#segCur button").forEach(b=>{ b.classList.toggle("on",b.dataset.v===cfg.displayCur);
+  b.onclick=()=>{ document.querySelectorAll("#segCur button").forEach(x=>x.classList.toggle("on",x===b)); cfg.displayCur=b.dataset.v; save(); render(); }; });
+F("rateInput").value=cfg.rate;
+F("rateInput").oninput=e=>{ const v=parseFloat(e.target.value); if(v>0){ cfg.rate=v; save(); render(); if(!RO()) scheduleCfgSync(); } };  // ignore blank/0 while typing — last valid rate stays in effect; admin's rate becomes the team default
+document.querySelectorAll("#segDiscount button").forEach(b=>{ b.classList.toggle("on",(cfg.addBackDiscount?"addback":"net")===b.dataset.v);
+  b.onclick=()=>{ cfg.addBackDiscount=(b.dataset.v==="addback"); document.querySelectorAll("#segDiscount button").forEach(x=>x.classList.toggle("on",x===b)); save(); render(); }; });
+function setSort(key,dir){
+  dsort={key:key||"",dir:dir||1};
+  F("docSort").value = dsort.key ? dsort.key+"|"+dsort.dir : "";
+  render();
+}
+F("docSort").onchange=e=>{ const v=e.target.value; if(!v) return setSort("",1); const [k,d]=v.split("|"); setSort(k,+d); };
+// Click a column header to sort: 1st = ascending, 2nd = descending, 3rd = back to manual order.
+document.querySelectorAll("#docTable th.sortable").forEach(th=> th.onclick=()=>{
+  const k=th.dataset.sort;
+  if(dsort.key!==k) setSort(k,1);
+  else if(dsort.dir===1) setSort(k,-1);
+  else setSort("",1);
+});
+F("docSearch").oninput=e=>{dfilt.q=e.target.value;render();};
+F("docStatus").onchange=e=>{dfilt.status=e.target.value;render();};
+F("docPhase").onchange=e=>{dfilt.phase=e.target.value;render();};
+F("ovUpload").onclick=e=>{ if(e.target.id==="ovUpload"){ F("ovUpload").classList.remove("show"); resetUploadUI(); } };
+F("ovForm").onclick=e=>{ if(e.target.id==="ovForm") cancelForm(); };   // backdrop dismiss = Cancel (keeps upload queue advancing)
+
+if(typeof pdfjsLib!=="undefined") pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+if(!isSeed) document.getElementById("demoBanner").style.display="none";
+render();
+
+/* ===== PRODUCTION LOADER — live data from the Google Sheet + passcode lock (2 roles) =====
+   Same pattern as the Rove Cost Estimator: a passcode overlay blocks the page, the token decides
+   the role (admin = edit · team = read-only), data + config come from ?data=1, and every edit is
+   debounced and POSTed back. If the network is down, the cached copy for that passcode still opens. */
+const LS_TOK="rc_tok", LS_CACHE="rc_cache_v1";
+let syncTimer=null, cfgTimer=null;
+function setSync(state){
+  const el=F("syncBadge"); if(!el) return;
+  const map={ok:["&#9679; synced","var(--gold2)"],saving:["&#9679; saving…","#e8c98e"],dirty:["&#9679; pending…","#e8c98e"],err:["&#9679; offline — will retry","#ff9d9d"],ro:["&#9679; live","var(--gold2)"]};
+  const m=map[state]||map.ok; el.innerHTML=m[0]; el.style.color=m[1];
+}
+function scheduleSync(){
+  if(RO()||!window.__TOKEN) return;
+  setSync("dirty"); clearTimeout(syncTimer);
+  syncTimer=setTimeout(pushDeals,1200);          // debounce: one Sheet write per burst of edits
+}
+async function pushDeals(){
+  if(RO()||!window.__TOKEN) return;
+  setSync("saving");
+  try{
+    const r=await fetch(BACKEND_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({t:window.__TOKEN,action:"saveDeals",deals,note:"app sync — "+deals.length+" deal(s)"})});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||"backend refused the write");
+    setSync("ok");
+  }catch(e){
+    setSync("err");                               // edits stay in the local cache — retry until the Sheet has them
+    clearTimeout(syncTimer); syncTimer=setTimeout(pushDeals,10000);
+  }
+}
+function scheduleCfgSync(){                       // admin's FX rate becomes the default a fresh device starts with
+  if(RO()||!window.__TOKEN) return;
+  clearTimeout(cfgTimer);
+  cfgTimer=setTimeout(()=>{ fetch(BACKEND_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({t:window.__TOKEN,action:"saveConfig",config:{rate:cfg.rate}})}).catch(()=>{}); },1500);
+}
+function applyRole(){
+  const ro=RO();
+  F("roleBadge").innerHTML = ro? "read-only" : "<b>admin</b>";
+  ["uploadBtn","addBtn","resetBtn","importBtn"].forEach(id=>{ const b=F(id); if(b) b.style.display= ro? "none":""; });
+  setSync(ro?"ro":"ok");
+  if(ro) F("demoBanner").style.display="none";
+}
+function applyData(j){
+  window.__ROLE=j.role||"read";
+  deals=Array.isArray(j.deals)?j.deals:[];
+  localStorage.setItem(KDOCS,JSON.stringify(deals));
+  isSeed = deals.length===0 && !RO();
+  if(j.config){
+    const c=j.config;
+    if(c.contract&&Array.isArray(c.contract.phases)&&c.contract.phases.length){   // contract parameters live in the Sheet — an RC/rate change there needs no app redeploy
+      CONTRACT.phases=c.contract.phases;
+      if(c.contract.rateService) CONTRACT.rateService=c.contract.rateService;
+      if(c.contract.effectiveDate) CONTRACT.effectiveDate=c.contract.effectiveDate;
+    }
+    if(c.rate>0 && !load(KCFG,null)){ cfg.rate=c.rate; save(); F("rateInput").value=cfg.rate; }   // FX default only on a fresh device — never clobber a chosen rate
+  }
+  applyRole();
+  document.getElementById("demoBanner").style.display = isSeed ? "" : "none";
+  render();
+}
+(function lock(){
+  const ov=document.createElement("div");
+  ov.style.cssText="position:fixed;inset:0;z-index:999;background:#233a2c;display:grid;place-items:center;padding:20px";
+  ov.innerHTML='<div style="width:min(360px,94vw);background:#1b2d22;border:1px solid #3f6b4a;border-radius:16px;padding:26px;box-shadow:0 18px 50px rgba(0,0,0,.4)">'
+    +'<div style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.2em;color:#c8a96e;text-transform:uppercase;margin-bottom:6px">Rove Gifts &middot; RC Tracker</div>'
+    +'<div style="font-family:\'DM Serif Display\',serif;font-size:22px;color:#fff;margin-bottom:14px">Enter passcode</div>'
+    +'<input id="lockPass" type="password" placeholder="Passcode" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:12px;border:1px solid #3f6b4a;background:#233a2c;color:#fff;font-size:16px;outline:none">'
+    +'<button id="lockGo" style="width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:#c8a96e;color:#3a2a10;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Open dashboard</button>'
+    +'<div id="lockMsg" style="margin-top:11px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.5">Admin passcode = full editing &middot; team passcode = view only.</div></div>';
+  document.body.appendChild(ov);
+  const inp=ov.querySelector("#lockPass"), btn=ov.querySelector("#lockGo"), msg=ov.querySelector("#lockMsg");
+  const setMsg=(s,ok)=>{ msg.innerHTML=s; msg.style.color= ok? "rgba(255,255,255,.6)":"#ffb4b4"; };
+  if(!BACKEND_URL || /PASTE_/.test(BACKEND_URL)) setMsg("&#9888; BACKEND_URL is not set in app.html yet — follow PANDUAN DEPLOY.md.",false);
+  function tryToken(tok){
+    setMsg("Connecting…",true); btn.disabled=true;
+    fetch(BACKEND_URL+"?t="+encodeURIComponent(tok)+"&data=1")
+      .then(r=>r.json())
+      .then(j=>{
+        if(j&&j.ok===false){ localStorage.removeItem(LS_TOK); const er=new Error(j.error||"Wrong passcode"); er.bad=true; throw er; }
+        localStorage.setItem(LS_TOK,tok);
+        localStorage.setItem(LS_CACHE,JSON.stringify(j));
+        window.__TOKEN=tok; applyData(j); ov.remove();
+      })
+      .catch(e=>{
+        btn.disabled=false;
+        if(!e.bad){                                   // network down: open the cached copy saved for this passcode
+          const ct=localStorage.getItem(LS_TOK), cc=localStorage.getItem(LS_CACHE);
+          if(ct===tok && cc){ try{ window.__TOKEN=tok; applyData(JSON.parse(cc)); setTimeout(()=>setSync("err"),50); ov.remove(); return; }catch(_){} }
+        }
+        setMsg(e.bad? "Wrong passcode — try again." : ("Could not reach the backend: "+String(e.message||e).slice(0,80)), false);
+      });
+  }
+  btn.onclick=()=>{ const v=inp.value.trim(); if(v) tryToken(v); };
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter") btn.onclick(); });
+  const saved=localStorage.getItem(LS_TOK);
+  if(saved){ inp.value=saved; tryToken(saved); } else setTimeout(()=>inp.focus(),100);
+})();
+</script>
+</body>
+</html>
