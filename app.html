@@ -178,6 +178,7 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
     <button class="btn btn-gold sm" id="uploadBtn">&#128228; Upload PDF</button>
     <button class="btn btn-ghost sm" id="addBtn">&#10010; Add</button>
     <button class="btn btn-ghost sm" id="resetBtn" title="Clear all deals and start fresh">&#128465; Reset</button>
+    <button class="btn btn-ghost sm" id="switchBtn" title="Log out and enter a different passcode (e.g. switch between admin and team)">&#8644; Switch passcode</button>
   </div>
 </div>
 
@@ -1422,6 +1423,8 @@ F("exportBtn").onclick=()=>{
 };
 /* "Send to team" was removed in the cloud build — the live URL + read-only passcode replaces it. */
 F("importBtn").onclick=()=>{ if(RO()) return; F("importFile").click(); };
+// Log out: forget the saved passcode and reload to the lock screen (to switch between admin and team).
+F("switchBtn").onclick=()=>{ localStorage.removeItem("rc_tok"); location.reload(); };
 F("importFile").onchange=async e=>{
   const f=e.target.files[0]; if(!f) return; const text=await f.text();
   // JSON import (full dataset WITH line items). A .json file REPLACES the whole tracker — used for the
