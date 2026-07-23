@@ -666,9 +666,22 @@ function renderDeals(items){
       const det=document.createElement("tr"); det.className="detail";
       const nonInfo=(+x.nonHqNet||0)?` · Non-HQ portion: ${fmtD(toAUD((+x.nonHqNet||0)+(cfg.addBackDiscount?(+x.nonHqDisc||0):0),x.cur))} @5%`:"";
       const servInfo=(+x.servNet||0)?` · Service portion: ${fmtD(toAUD((+x.servNet||0)+(cfg.addBackDiscount?(+x.servDisc||0):0),x.cur))} @5%`:"";
+      // Line-item list — visible to everyone (read-only team included), so the team can see what's in each deal.
+      const CATLBL={hq:"HQ Product",nonhq:"Non-HQ Product",service:"Service",shipping:"Shipping (excl.)",ignore:"—"};
+      const linesHtml=(x.lines&&x.lines.length)?`<br><b>Line items</b> <span style="color:var(--text3)">(from the quotation / invoice)</span>
+        <div style="overflow-x:auto"><table style="width:auto;min-width:min(560px,100%);margin:5px 0 2px;font-size:11.5px;border-collapse:collapse">
+        <thead><tr style="color:var(--text3);font-family:'DM Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em">
+        <th style="text-align:left;padding:3px 12px 3px 0">Item</th><th style="text-align:right;padding:3px 12px">Gross</th><th style="text-align:right;padding:3px 12px">Discount</th><th style="text-align:right;padding:3px 12px">Net</th><th style="text-align:left;padding:3px 0">Royalty type</th></tr></thead>
+        <tbody>${x.lines.map(l=>{const g=toAUD(+l.amt||0,x.cur),d=toAUD(+l.disc||0,x.cur);return `<tr>
+        <td style="text-align:left;padding:3px 12px 3px 0;white-space:normal">${esc(l.desc||"—")}</td>
+        <td class="num" style="text-align:right;padding:3px 12px">${fmtD(g)}</td>
+        <td class="num" style="text-align:right;padding:3px 12px;color:var(--text3)">${d?fmtD(d):"—"}</td>
+        <td class="num" style="text-align:right;padding:3px 12px">${fmtD(g-d)}</td>
+        <td style="text-align:left;padding:3px 0;color:var(--text3)">${CATLBL[l.cat]||esc(l.cat||"—")}</td></tr>`;}).join("")}</tbody></table></div>`:"";
       det.innerHTML=`<td colspan="11">
         <b>Breakdown:</b> HQ Product ${fmtD(toAUD((+x.prodNet||0)+(cfg.addBackDiscount?(+x.prodDisc||0):0),x.cur))} @${(phaseRate(x.phaseId)*100).toFixed(0)}%${nonInfo}${servInfo}
         ${x.invRefs?` · <b>Invoices:</b> ${esc(x.invRefs)}`:""}
+        ${linesHtml}
         ${x.notes?`<br><b>Notes:</b> ${esc(x.notes)}`:""}
         ${(x.log&&x.log.length)?`<br><b>History:</b><br>· ${x.log.map(esc).join("<br>· ")}`:""}
       </td>`;
