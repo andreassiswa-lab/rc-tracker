@@ -263,7 +263,7 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
         </select>
         <button class="btn btn-ghost sm" id="exportBtn">&#11015; Export</button>
         <button class="btn btn-ghost sm" id="importBtn">&#11014; Import</button>
-        <input type="file" id="importFile" accept=".csv" style="display:none" />
+        <input type="file" id="importFile" accept=".csv,.json" style="display:none" />
       </div>
     </div>
     <div class="tablewrap">
@@ -1424,6 +1424,19 @@ F("exportBtn").onclick=()=>{
 F("importBtn").onclick=()=>{ if(RO()) return; F("importFile").click(); };
 F("importFile").onchange=async e=>{
   const f=e.target.files[0]; if(!f) return; const text=await f.text();
+  // JSON import (full dataset WITH line items). A .json file REPLACES the whole tracker — used for the
+  // one-off reconstruction from the source PDFs. CSV import (below) keeps the old add/replace behaviour.
+  if(/\.json$/i.test(f.name) || text.trim().startsWith("[")){
+    let arr; try{ arr=JSON.parse(text); }catch(err){ alert("Could not read that JSON file: "+err.message); e.target.value=""; return; }
+    if(!Array.isArray(arr)){ alert("The JSON file must be an array of deals."); e.target.value=""; return; }
+    arr.forEach(d=>{ if(!STATUSES.includes(d.status)) d.status="Enquiry Phase"; if(!Array.isArray(d.log)) d.log=[];
+      if(d.lines&&!Array.isArray(d.lines)) delete d.lines; });
+    const nLines=arr.reduce((s,d)=>s+((d.lines&&d.lines.length)||0),0);
+    if(confirm(`Load ${arr.length} deals (with ${nLines} line items) from this file?\n\nThis REPLACES all ${deals.length} current deal(s) and syncs to the Google Sheet. Export a CSV first if you want a backup of the current data.`)){
+      deals=arr; isSeed=false; saveDeals(); render();
+    }
+    e.target.value=""; return;
+  }
   const splitLine=l=> l.includes('"') ? [...l.matchAll(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g)].map(m=>m[1].replace(/^"|"$/g,"").replace(/""/g,'"')) : l.split(",");
   const lines=text.split(/\r?\n/).filter(x=>x.trim()); const head=splitLine(lines.shift()).map(s=>s.trim());
   const parsed=lines.map(l=>{ const c=splitLine(l); const o={}; head.forEach((h,i)=>o[h]=(c[i]||"").trim());
