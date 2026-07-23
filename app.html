@@ -164,7 +164,7 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
 <div class="header">
   <div class="header-in">
     <div>
-      <div class="eyebrow">CV Nandhi Ratu Semesta × Yurido Goods Pty Ltd · No. 001/NRN/IV/2026</div>
+      <div class="eyebrow">CV Nandhi Ratu Semesta × Yurido Goods Pty Ltd</div>
       <h1>Revenue Commitment <em>Tracker</em></h1>
       <div class="header-sub">Rove Gifts HQ × Rove Gifts Australia · live dashboard · <b style="color:var(--gold2)">v28 · cloud</b> · <span id="roleBadge"></span> <span id="syncBadge" title="Sync status with the Google Sheet database"></span></div>
     </div>
@@ -177,7 +177,6 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
     </div>
     <button class="btn btn-gold sm" id="uploadBtn">&#128228; Upload PDF</button>
     <button class="btn btn-ghost sm" id="addBtn">&#10010; Add</button>
-    <button class="btn btn-ghost sm" id="resetBtn" title="Clear all deals and start fresh">&#128465; Reset</button>
     <button class="btn btn-ghost sm" id="switchBtn" title="Log out and enter a different passcode (e.g. switch between admin and team)">&#8644; Switch passcode</button>
   </div>
 </div>
@@ -289,7 +288,6 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
   </div>
 
   <footer>
-    Source: <b>Final_Draft_Contract_02_Rove_AU</b> — Global Exclusive Distribution Agreement No. 001/NRN/IV/2026 (CONFIDENTIAL). Effective Date 1 May 2026.<br/>
     Internal monitoring tool — not a legal document. In case of discrepancy, the contract prevails.
   </footer>
 </div>
@@ -1406,11 +1404,6 @@ F("uploadBtn").onclick=()=>{ resetUploadUI(); plog.textContent=""; plog.style.di
 F("closeUpload").onclick=()=>{ F("ovUpload").classList.remove("show"); resetUploadUI(); };
 F("manualInv").onclick=()=>{ const idx=invTarget; F("ovUpload").classList.remove("show"); resetUploadUI(); if(idx!=null) openForm({mode:"invoice",dealIdx:idx}); };
 F("addBtn").onclick=()=>openForm({mode:"new"});
-F("resetBtn").onclick=()=>{
-  if(RO()) return;
-  if(!confirm(`Clear ALL ${deals.length} deal(s) and start with an empty tracker? This clears the Google Sheet database too — export first if you want a backup.`)) return;
-  deals=[]; isSeed=false; saveDeals(); render();
-};
 
 /* ====================== IMPORT / EXPORT ====================== */
 const CSVHEAD=["no","klien","eventDate","status","cur","prodNet","prodDisc","nonHqNet","nonHqDisc","servNet","servDisc","invNet","invDisc","invRefs","notes","log"];
@@ -1523,7 +1516,7 @@ function scheduleCfgSync(){                       // admin's FX rate becomes the
 function applyRole(){
   const ro=RO();
   F("roleBadge").innerHTML = ro? "read-only" : "<b>admin</b>";
-  ["uploadBtn","addBtn","resetBtn","importBtn"].forEach(id=>{ const b=F(id); if(b) b.style.display= ro? "none":""; });
+  ["uploadBtn","addBtn","importBtn"].forEach(id=>{ const b=F(id); if(b) b.style.display= ro? "none":""; });
   setSync(ro?"ro":"ok");
   if(ro) F("demoBanner").style.display="none";
 }
