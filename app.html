@@ -166,7 +166,7 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
     <div>
       <div class="eyebrow">CV Nandhi Ratu Semesta × Yurido Goods Pty Ltd</div>
       <h1>Revenue Commitment <em>Tracker</em></h1>
-      <div class="header-sub">Rove Gifts HQ × Rove Gifts Australia · live dashboard · <b style="color:var(--gold2)">v28 · cloud</b> · <span id="roleBadge"></span> <span id="syncBadge" title="Sync status with the Google Sheet database"></span></div>
+      <div class="header-sub">Rove Gifts HQ × Rove Gifts Australia · live dashboard · <b style="color:var(--gold2)">v29 · invoice-date revenue + item reconciliation</b> · <span id="roleBadge"></span> <span id="syncBadge" title="Sync status with the Google Sheet database"></span></div>
     </div>
     <div class="spacer"></div>
     <div class="curctl">
@@ -213,12 +213,12 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
         <thead><tr>
           <th>Phase</th><th>Period</th><th>Base RC</th><th>Shortfall In</th>
           <th>Revenue Commitment</th><th>Real Revenue</th><th>%</th><th>Potential</th><th>+Pot %</th>
-          <th>Shortfall Out</th><th>Royalty</th><th>Status</th>
+          <th>Shortfall Out</th><th>Royalty</th><th>Time Left</th><th>Status</th>
         </tr></thead>
         <tbody></tbody>
       </table>
     </div>
-    <div class="note">Phase is set by each deal's <b>delivery date</b> (handover of all items to the client — royalty falls due then, Cl. 6.4; usually the event date). <b>Real Revenue</b> = invoiced to date (Ongoing + Done projects); <b>Potential</b> = active enquiries + uninvoiced balance of ongoing projects. Shortfall vs RC carries forward cumulatively (Cl. 5.3): <b>Revenue Commitment = Base RC + Shortfall In</b>. Amounts in <b id="noteCur">AUD</b>. Royalty: HQ product = phase rate (7%/11%/15%), Non-HQ product &amp; service = 5% (Cl. 6); shipping excluded.</div>
+    <div class="note"><b>Real Revenue</b> is recognised on each <b>invoice's issue date</b> — a project billed in instalments is counted in the phase each instalment was invoiced in. <b>Potential</b> (active enquiries + uninvoiced balance) sits in its <b>delivery-date</b> phase, as the best estimate of when it will be billed. <b>Royalty</b> is always priced at the <b>delivery-date</b> phase rate (royalty falls due at handover, Cl. 6.4) and is shown in the same row as the revenue that generated it — so Royalty ÷ Real Revenue in a row need not equal that phase's rate. Shortfall vs RC carries forward cumulatively (Cl. 5.3): <b>Revenue Commitment = Base RC + Shortfall In</b>. Amounts in <b id="noteCur">AUD</b>. Rates: HQ product 7%/11%/15% by phase, Non-HQ product &amp; service 5% (Cl. 6); shipping excluded.</div>
     <div class="note" id="outsideNote" style="color:var(--amber);display:none"></div>
   </div>
 
@@ -316,8 +316,10 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
     <div id="secLines" style="display:none">
       <div class="seclab" id="lineSecLab">Line items — classify each</div>
       <div class="note" style="margin:0 0 8px">Itemise the deal here — from a PDF upload these are pre-filled, or click <b>&#10010; Add line</b> to enter them by hand. Set each line's <b>royalty type</b>, and its <b>gross</b> &amp; <b>discount</b>; net and the Deal Value fields below recompute automatically. Leave empty to type the totals straight into Deal Value instead.</div>
+      <div class="flag" id="mergeNote" style="display:none;margin:0 0 9px"></div>
       <div id="lineRows"></div>
       <button class="btn btn-ghost sm" id="addLineBtn" type="button">&#10010; Add line</button>
+      <button class="btn btn-ghost sm" id="dedupeBtn" type="button" style="display:none;margin-left:6px" title="Combine rows that describe the same item, adding their amounts together">&#8646; Merge duplicate items</button>
       <div class="note" id="lineSummary" style="margin-top:6px"></div>
     </div>
     <div class="row2">
@@ -348,6 +350,10 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
         <div class="field"><label>Invoiced — net</label><input type="number" id="fInvNet" step="0.01" placeholder="0"/></div>
         <div class="field"><label>Invoiced — discount</label><input type="number" id="fInvDisc" step="0.01" placeholder="0"/></div>
       </div>
+      <div class="row2" id="rowInvDate" style="display:none">
+        <div class="field"><label>This invoice — number</label><input id="fInvThisNo" placeholder="INV-0001"/></div>
+        <div class="field"><label>This invoice — issue date <b>(sets which phase its revenue counts in)</b></label><input type="date" id="fInvDate"/></div>
+      </div>
       <div class="field"><label>Invoice refs</label><input id="fInvRefs" placeholder="INV-0001, INV-0002"/></div>
       <div class="row2" id="rowInstal" style="align-items:end;display:none">
         <div class="field"><label id="instalLab">Instalments — invoice # of # · or this invoice's share of the project</label>
@@ -356,7 +362,7 @@ footer{margin-top:30px;color:var(--text3);font-size:11px;text-align:center;line-
             <span class="lab" style="color:var(--text3)">of</span>
             <input type="number" id="fInvY" min="1" step="1" placeholder="2" style="width:56px"/>
             <span class="lab" style="color:var(--text3)" id="instalPctLab">· this invoice =</span>
-            <input type="number" id="fInvPct" min="1" max="99" step="1" placeholder="40" style="width:56px"/>
+            <input type="number" id="fInvPct" min="1" max="100" step="1" placeholder="40" style="width:56px"/>
             <span class="lab" style="color:var(--text3)">% of project</span>
           </div>
         </div>
@@ -444,8 +450,13 @@ function amounts(d){ // in AUD, chosen basis
   const inv=toAUD((+d.invNet||0)+(gb?(+d.invDisc||0):0), d.cur||"AUD");
   return {prod:toAUD(prod,d.cur||"AUD"), nonhq:toAUD(nonhq,d.cur||"AUD"), serv:toAUD(serv,d.cur||"AUD"), dv, inv};
 }
+/* REVENUE RECOGNITION (v29):
+   · Real Revenue  → recognised per invoice, on the invoice's ISSUE DATE (d.invoices[].date).
+   · Potential     → still sits in the DELIVERY-date phase (best estimate of when it will be billed).
+   · Royalty RATE  → always the delivery-date phase rate (Cl. 6.4: royalty falls due at handover),
+                     but the resulting royalty is reported in the phase row where its revenue landed. */
 function enrich(d){
-  const phaseId=phaseOf(d.eventDate);
+  const phaseId=phaseOf(d.eventDate);            // delivery phase — drives the royalty rate AND where Potential sits
   const a=amounts(d);
   const pr=phaseRate(phaseId);
   const br = a.dv>0 ? (a.prod*pr + (a.nonhq+a.serv)*CONTRACT.rateService)/a.dv : pr;   // blended: HQ product @ phase rate, non-HQ & service @ 5%
@@ -454,21 +465,48 @@ function enrich(d){
   else if(d.status==="Enquiry Phase") pot=a.dv;
   else if(d.status==="Ongoing Project"){ real=a.inv; pot=Math.max(0, a.dv-a.inv); }
   else if(d.status==="Project Done"){ real=a.inv; pot=0; }
-  return {...d, phaseId, dv:a.dv, inv:a.inv, real, pot, br, royaltyReal:real*br, royaltyPot:pot*br};
+  // Split the invoiced total across the phases its invoices were ISSUED in.
+  const realByPhase={};
+  if(real>0){
+    const gb=cfg.addBackDiscount, invs=Array.isArray(d.invoices)?d.invoices:[];
+    const parts=[]; let tot=0;
+    invs.forEach(v=>{
+      const amt=toAUD((+v.net||0)+(gb?(+v.disc||0):0), d.cur||"AUD");
+      if(amt>0){ parts.push({ph:phaseOf(v.date)||"__none", amt}); tot+=amt; }
+    });
+    if(tot>0){
+      const f=real/tot;                                     // scale so the split always reconciles to the recorded invoiced total
+      parts.forEach(q=>{ realByPhase[q.ph]=(realByPhase[q.ph]||0)+q.amt*f; });
+    } else realByPhase[phaseId||"__none"]=real;             // no invoice dates on file → fall back to the delivery phase
+  }
+  return {...d, phaseId, dv:a.dv, inv:a.inv, real, pot, br, royaltyReal:real*br, royaltyPot:pot*br, realByPhase};
 }
 function computePhases(items){
   let carry=0;
+  const now=new Date();
   return CONTRACT.phases.map(p=>{
-    const inP=items.filter(x=>x.phaseId===p.id);
-    const real=inP.reduce((s,x)=>s+x.real,0);
-    const pot=inP.reduce((s,x)=>s+x.pot,0);
-    const roy=inP.reduce((s,x)=>s+x.royaltyReal,0);
+    const real=items.reduce((s,x)=>s+((x.realByPhase&&x.realByPhase[p.id])||0),0);          // invoiced IN this phase
+    const pot =items.filter(x=>x.phaseId===p.id).reduce((s,x)=>s+x.pot,0);                  // expected, by delivery date
+    const roy =items.reduce((s,x)=>s+((x.realByPhase&&x.realByPhase[p.id])||0)*(x.br||0),0); // royalty follows its revenue, priced at the deal's delivery rate
     const carryIn=carry, rcEf=p.rc+carryIn;
     const shortfall=Math.max(0,rcEf-real); carry=shortfall;
-    const now=new Date();
-    const elapsed = now<new Date(p.start)?"future":(now>new Date(p.end+"T23:59:59")?"past":"current");  // phase runs through end of its final day
-    return {...p, real, pot, roy, carryIn, rcEf, shortfall, carryOut:shortfall, ach:rcEf>0?real/rcEf:0, elapsed};
+    const start=new Date(p.start), end=new Date(p.end+"T23:59:59");
+    const elapsed = now<start?"future":(now>end?"past":"current");  // phase runs through end of its final day
+    const span=end-start, gone=Math.min(Math.max(now-start,0),span);
+    const timePct = span>0 ? gone/span : 0;                                   // how far through the phase we are
+    const daysLeft = Math.max(0, Math.ceil((end-now)/86400000));
+    const daysToStart = Math.max(0, Math.ceil((start-now)/86400000));
+    return {...p, real, pot, roy, carryIn, rcEf, shortfall, carryOut:shortfall, ach:rcEf>0?real/rcEf:0, elapsed, timePct, daysLeft, daysToStart};
   });
+}
+/* Time-left cell: countdown + whether revenue is keeping up with the clock. */
+function paceCell(p){
+  if(p.elapsed==="future") return `<span style="color:var(--text3)">starts in ${p.daysToStart} d</span><br><span style="font-size:10px;color:var(--text3)">${dmy(new Date(p.start))}</span>`;
+  if(p.elapsed==="past")   return `<span style="color:var(--text3)">ended</span><br><span style="font-size:10px;color:var(--text3)">${dmy(new Date(p.end))}</span>`;
+  const t=Math.round(p.timePct*100), a=pct(p.real,p.rcEf);
+  const mo=Math.round(p.daysLeft/30.44);
+  return `<b>${p.daysLeft} days</b> left${mo>=2?` <span style="color:var(--text3)">(~${mo} mo)</span>`:""}`
+    +`<br><span style="font-size:10px;color:var(--text3)">time ${t}% · achieved ${a}%</span>`;
 }
 function currentPhase(ph){ return ph.find(p=>p.elapsed==="current")||ph.filter(p=>p.elapsed==="past").pop()||ph[0]; }
 
@@ -522,12 +560,13 @@ function render(){
       <td class="num">${pct(p.real+p.pot,p.rcEf)}%</td>
       <td class="num" style="color:${p.carryOut>0?'var(--red)':'var(--text3)'}">${p.carryOut?fmtD(p.carryOut):"—"}</td>
       <td class="num">${fmtD(p.roy)}</td>
+      <td class="l" style="white-space:nowrap;font-size:11.5px">${paceCell(p)}</td>
       <td>${st}</td>`;
     tb.appendChild(tr);
   });
 
   // deals excluded from phase rows (no/invalid event date) but present in KPI totals — surface the gap
-  const outside=items.filter(x=>!x.phaseId&&(x.real>0||x.pot>0));
+  const outside=items.filter(x=>((x.realByPhase&&x.realByPhase.__none>0)) || (!x.phaseId&&x.pot>0));
   const on=document.getElementById("outsideNote");
   if(outside.length){
     on.style.display="";
@@ -647,6 +686,14 @@ function renderDeals(items){
       +`<button class="ordbtn" data-up="${i}" ${manual&&i>0?"":"disabled"} title="${manual?"Move up":"Switch to Manual order to reorder"}">&#9650;</button>`
       +`<button class="ordbtn" data-down="${i}" ${manual&&i<deals.length-1?"":"disabled"} title="${manual?"Move down":"Switch to Manual order to reorder"}">&#9660;</button></span>`;
     const dateCell= ro ? dmy(pd(x.eventDate)) : `<input type="date" class="dlinp" data-ed="${i}" value="${esc(x.eventDate||"")}">`;
+    // A deal can now sit in TWO phases: Real where its invoices were issued, Potential where it will be delivered.
+    const rPh=Object.keys(x.realByPhase||{}).filter(k=>k!=="__none"&&x.realByPhase[k]>0);
+    const pPh=(x.pot>0&&x.phaseId)?[x.phaseId]:[];
+    const allPh=[...new Set([...rPh,...pPh])].sort();
+    const phTip=[rPh.length?`Real in ${rPh.join(" + ")} (invoice date)`:"", pPh.length?`Potential in ${pPh.join(" + ")} (delivery date)`:""].filter(Boolean).join(" · ");
+    const phCell = allPh.length
+      ? `<span title="${esc(phTip)}">`+allPh.map(k=>`<span class="pill ${rPh.includes(k)?"gold":"muted"}">${k}</span>`).join(" ")+`</span>`
+      : '<span class="pill warn">no phase</span>';
     const tr=document.createElement("tr");
     if(CANCELLED(x.status)) tr.className="archived";
     tr.innerHTML=`
@@ -654,7 +701,7 @@ function renderDeals(items){
       <td class="l"><button class="xbtn" data-x="${i}">${expanded[i]?"&#9662;":"&#9656;"}</button><b>${esc(x.no)||"—"}</b></td>
       <td class="l">${esc(x.klien)||"—"}</td>
       <td class="l">${dateCell}</td>
-      <td>${x.phaseId?x.phaseId:'<span class="pill warn">no phase</span>'}</td>
+      <td>${phCell}</td>
       <td class="num">${(x.status==="Enquiry Phase"||x.status==="Enquiry Cancel")?"—":fmtD(x.dv)}</td>
       <td class="num">${x.inv?fmtD(x.inv):"—"}</td>
       <td class="num" style="color:var(--amber)">${x.pot?fmtD(x.pot):"—"}</td>
@@ -680,7 +727,13 @@ function renderDeals(items){
         <td style="text-align:left;padding:3px 0;color:var(--text3)">${CATLBL[l.cat]||esc(l.cat||"—")}</td></tr>`;}).join("")}</tbody></table></div>`:"";
       det.innerHTML=`<td colspan="11">
         <b>Breakdown:</b> HQ Product ${fmtD(toAUD((+x.prodNet||0)+(cfg.addBackDiscount?(+x.prodDisc||0):0),x.cur))} @${(phaseRate(x.phaseId)*100).toFixed(0)}%${nonInfo}${servInfo}
-        ${x.invRefs?` · <b>Invoices:</b> ${esc(x.invRefs)}`:""}
+        ${(x.invoices&&x.invoices.length)
+          ? `<br><b>Invoices</b> <span style="color:var(--text3)">(revenue recognised on each issue date)</span><br>`
+            + x.invoices.map(v=>{
+                const ph=phaseOf(v.date), amt=toAUD((+v.net||0)+(cfg.addBackDiscount?(+v.disc||0):0),x.cur);
+                return `· <b>${esc(v.no)}</b> — ${v.date?dmy(pd(v.date)):"no date"} ${ph?`<span class="pill gold">${ph}</span>`:'<span class="pill warn">no phase</span>'} — ${fmtD(amt)}${v.note?` <span style="color:var(--text3)">(${esc(v.note)})</span>`:""}`;
+              }).join("<br>")
+          : (x.invRefs?` · <b>Invoices:</b> ${esc(x.invRefs)}`:"")}
         ${linesHtml}
         ${x.notes?`<br><b>Notes:</b> ${esc(x.notes)}`:""}
         ${(x.log&&x.log.length)?`<br><b>History:</b><br>· ${x.log.map(esc).join("<br>· ")}`:""}
@@ -827,7 +880,9 @@ function parseDoc(text, fileName){
   const iInv=low.indexOf("invoice"), iQuo=Math.max(low.indexOf("quotation"),low.indexOf("quote"));
   if(iQuo>=0 && (iInv<0 || iQuo<iInv)) r.tipe="Quotation";
   let m=t.match(/(?:invoice|quotation|quote|no|number|#)\s*[:#.]?\s*([A-Za-z]{0,6}[-\/]?\d[\w\-\/.]*)/i); if(m) r.no=m[1].toUpperCase();
-  const refM=t.match(/reference\s*[:#]?\s*([A-Za-z]{2,5}\s?\d{3,}[\w.\-]*)/i);   // Xero "Reference EVT0001" = the project/deal id
+  // Xero "Reference EVT0001" = the project/deal id. Newer Xero templates print the label and the value in
+  // separate table rows, so also accept a bare EVT#### anywhere in the document.
+  const refM=t.match(/reference\s*[:#]?\s*([A-Za-z]{2,5}\s?\d{3,}[\w.\-]*)/i) || t.match(/\b(EVT\s?\d{3,}[\w.\-]*)/i);
   const invM=t.match(/\b(INV[-\s]?\d{3,}[\w\-]*)/i);
   if(refM) r.no=refM[1].toUpperCase().replace(/\s+/g,"");
   if(invM) r.invNo=invM[1].toUpperCase().replace(/\s+/g,"-");
@@ -858,11 +913,12 @@ if(m) r.klien=m[1].replace(/\s*[·|]\s*.*$/,"").replace(/\s+[–—-]\s+.*$/,"")
 }
 
 /* ---- Line-item extraction: best-effort split of "description … amount" rows for the classify step ---- */
-const LINE_SKIP=/sub\s*total|grand\s*total|^total\b|\bgst\b|total\s*aud|amount\s*due|less\s*amount|locked\s*rate|exchange\s*rate|payment|remaining|bank|bsb|account|abn|due\s*date|invoice\s*(date|number)|quote\s*(no|valid)|valid\s*until|date\s*:|reference|attachments?|terms|conditions|rove\s*gifts|page\s*\d|full\s*unit|proposal\s*for|^date\b|event\s*date|^\s*(city|venue)\b|^\s*(quote|invoice)\s*$|item\s*\/\s*service/i;
+const LINE_SKIP=/sub\s*total|grand\s*total|^total\b|\bgst\b|total\s*aud|amount\s*due|less\s*amount|locked\s*rate|exchange\s*rate|payment|remaining|bank|bsb|account|abn|due\s*date|invoice\s*(date|number)|quote\s*(no|valid)|valid\s*until|date\s*:|reference|attachments?|terms|conditions|rove\s*gifts|page\s*\d|full\s*unit|proposal\s*for|^date\b|event\s*date|^\s*(city|venue)\b|^\s*(quote|invoice)\s*$|item\s*\/\s*service|includes\s*discount|view\s*and\s*pay|issue\s*date|^\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s*$/i;
 const QTY_NOTE=/^\(?\s*(one[\s-]?off|each|set|pair|pack|per\s*unit|per\s*pax|ea|pcs?|units?|qty|min\.?)\s*\)?$/i;   // a quantity annotation ("(one-off)") is never the item name
 function guessCat(desc, neg){
   const d=norm(desc);
-  if(/deposit\s*already|already\s*paid|credit\s*note|less\s*deposit/.test(d)) return "credit";
+  // A deposit or credit line is a PAYMENT, not something the client bought — never part of the deal's scope.
+  if(/deposit\s*already|already\s*paid|credit\s*note|less\s*deposit|\bdeposit\b|\bcredit\b/.test(d)) return "ignore";
   if(neg || /discount|%\s*off|offer|voucher|one\s*fine\s*day|ofd\d/.test(d)) return "discount";
   if(/shipping|freight|postage|delivery\s*(to|fee)|local\s.{0,15}shipping/.test(d)) return "shipping";
   if(/live\s*stamping|live\s*monogram|live\s*service|monogram\s*service|\bhrs\b|on-?site|travel\s*(to\s*venue|fee)|consultation|event\s*(fee|execution)|sponsor/.test(d)) return "service";
@@ -879,6 +935,9 @@ function scanMoney(line, keepZero){   // keepZero: keep "0.00" cells (a fully-wa
     const sep=/[.,]/.test(raw);
     if(/^0\d/.test(raw)) continue;      // leading-zero = a document/quote-number fragment ("Q0002.5"→"0002.5"), never a price
     if(!cur && !sep) continue;
+    // A figure written as a PERCENTAGE is a rate, not money. Xero's "Discount 20.00%" column would
+    // otherwise be read as a $20 discount on every line (and the real, document-level discount ignored).
+    if(/^\s*%/.test(line.slice(m.index+m[0].length))) continue;
     out.push({val,cur,sep,idx:m.index,len:m[0].length});
   }
   return out;
@@ -905,6 +964,11 @@ function parseLines(text, docCur){
   // Some invoices carry a dedicated Discount COLUMN ("Description Quantity Unit Price Discount GST Amount").
   // Then the per-line discount is a real cell — read it from the row instead of spreading a document-level total.
   const hasDiscCol = text.split(/\n/).some(l=>/\bdiscount\b/i.test(l) && /\bamount\b/i.test(l) && /(unit\s*price|quantity|\bqty\b)/i.test(l));
+  // Does this row already carry the deal-currency amount? On a single-currency invoice the Amount column is
+  // untagged, so an untagged figure counts — otherwise a later stray total ("Total 38.02") would be merged
+  // into the last item as if the item were still waiting for its price.
+  const hasT = ms => ms.some(x=> x.cur===target || (!dual && !x.cur));
+  const MONTH_ONLY=/^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*$/i;   // a stray date fragment is never an item
   const out=[]; out.discCol=hasDiscCol;
   let pending=null;   // a text-only line may be an item title whose figures sit on the next visual row (Y-split rows)
   for(const raw of text.split(/\n/)){
@@ -923,17 +987,18 @@ function parseLines(text, docCur){
     if(letters<3){                                                 // figures-only row
       if(pending){                                                 // …right after a bare title → that IS the item (title & figures in split Y-rows)
         const pd=cleanDesc(pending, []);
-        out.push({desc:pd, amt:pickAmt(money,target), cat:guessCat(pd,false), _money:money.slice(), _hasT:money.some(x=>x.cur===target)});
+        out.push({desc:pd, amt:pickAmt(money,target), cat:guessCat(pd,false), _money:money.slice(), _hasT:hasT(money)});
         pending=null;
       } else if(prev && !prev._hasT){                              // continuation while the item still lacks a deal-currency figure;
         prev._money=prev._money.concat(money);                     // otherwise it's a stray document total and must be dropped.
         prev.amt=pickAmt(prev._money,target);
-        prev._hasT=prev._money.some(x=>x.cur===target);
+        prev._hasT=hasT(prev._money);
       }
       continue;
     }
     const titleCand=pending; pending=null;
     if(/^(enq|inv|evt|quo|q|no)[\s#:.\-]*$/i.test(desc)) continue; // document-number line
+    if(MONTH_ONLY.test(desc.trim())) continue;                     // "Sept" left over from an issue-date row
     if(dual){                                                      // dual-currency pair merge — ONLY for real Rp+A$ quotes (not for a single-currency invoice whose description happens to contain "$1,800")
       const allT=money.every(x=>x.cur===target);
       if(prev && !prev._hasT && allT){ prev._money=prev._money.concat(money); prev.amt=pickAmt(prev._money,target); prev._hasT=true; continue; }
@@ -954,7 +1019,7 @@ function parseLines(text, docCur){
       else if(money.length){ amtV=money[money.length-1].val; }
       amtV=Math.round((amtV+discV)*100)/100;                      // store GROSS (Cl. 1) = Amount + line discount
     }
-    out.push({desc:finalDesc, amt:amtV, disc:discV, cat:guessCat(finalDesc,neg), _money:money.slice(), _hasT:money.some(x=>x.cur===target)});
+    out.push({desc:finalDesc, amt:amtV, disc:discV, cat:guessCat(finalDesc,neg), _money:money.slice(), _hasT:hasT(money)});
     if(out.length>=30) break;
   }
   out.forEach(o=>{ delete o._money; delete o._hasT; });
@@ -1025,7 +1090,7 @@ function applyLines(){
     const Y=parseInt(F("fInvY").value)||0;
     const pct=parseFloat(F("fInvPct").value)||0;
     // A % share wins over the "of N" count: deposits are often uneven (40/60), where × N would be wrong.
-    const mult = (pct>0&&pct<100) ? 100/pct : (Y>=2 ? Y : 0);
+    const mult = (pct>0&&pct<=100) ? 100/pct : (Y>=2 ? Y : 0);   // 100% = this invoice covers the whole project → no projection
     const note=F("fInvSplitNote"); if(note) note.innerHTML="";
     if(mult>1 && formCtx.firstInv){
       // Deposit / first instalment: project the FULL (100%) project value from this invoice's share.
@@ -1059,11 +1124,25 @@ function applyLines(){
    deal uploaded before the splitter existed can be retro-fitted (e.g. a 50% deposit deal → "1 of 2"). */
 function projectFromInvoiced(){
   const note=F("fInvSplitNote"); const rnd=v=>Math.round((v||0)*100)/100;
-  const Y=parseInt(F("fInvY").value)||0, pct=parseFloat(F("fInvPct").value)||0;
-  const mult=(pct>0&&pct<100)?100/pct:(Y>=2?Y:0);
-  if(!(mult>1)){ if(note) note.innerHTML=""; formCtx.dvFull=false; formCtx.installments=null; formCtx.depositPct=null; return; }
+  const X=parseInt(F("fInvX").value)||0, Y=parseInt(F("fInvY").value)||0, pct=parseFloat(F("fInvPct").value)||0;
+  // In Edit, the base figure is the CUMULATIVE invoiced-to-date, so the share already billed is X of Y
+  // (not one instalment). "4 of 4" therefore means fully invoiced → multiplier 1, not × 4.
+  const share = (pct>0&&pct<=100) ? pct/100 : ((Y>=1&&X>=1) ? Math.min(1, X/Y) : 0);
+  const mult = share>0 ? 1/share : 0;
+  if(!(mult>=1)){ if(note) note.innerHTML=""; formCtx.dvFull=false; formCtx.installments=null; formCtx.depositPct=null; return; }
   const invN=parseFloat(F("fInvNet").value)||0, invD=parseFloat(F("fInvDisc").value)||0;
   if(!(invN>0)){ if(note) note.innerHTML=`<span style="color:var(--amber)">&#9888; Enter the invoiced amount first — the full project value is derived from it.</span>`; return; }
+  if(mult===1){   // fully invoiced: the deal value IS what was billed — rebuild it from the itemised list when there is one
+    const s=(formCtx.lines&&formCtx.lines.length)?lineSums():null;
+    if(s){ F("fProdNet").value=rnd(s.Pg-s.Pd)||""; F("fProdDisc").value=rnd(s.Pd)||"";
+           F("fNonNet").value=rnd(s.Ng-s.Nd)||"";  F("fNonDisc").value=rnd(s.Nd)||"";
+           F("fServNet").value=rnd(s.Sg-s.Sd)||""; F("fServDisc").value=rnd(s.Sd)||""; }
+    formCtx.dvFull=false; formCtx.dealDvFull=false; formCtx.installments=Y||null; formCtx.depositPct=null;
+    const cur1=F("fCur").value||"AUD"; const g1=v=>sym()+" "+fmt(disp(toAUD(v,cur1)));
+    const dvNow=(parseFloat(F("fProdNet").value)||0)+(parseFloat(F("fNonNet").value)||0)+(parseFloat(F("fServNet").value)||0);
+    if(note) note.innerHTML=`<span style="color:var(--green4)">Fully invoiced (${X||Y} of ${Y}) — Deal Value is the full project <b>${g1(dvNow)}</b>${s?" (rebuilt from the line items)":""} and Potential is 0.</span>`;
+    return;
+  }
   const bn=[["fProdNet",0],["fNonNet",0],["fServNet",0]].map(([id])=>parseFloat(F(id).value)||0);
   const bd=[["fProdDisc",0],["fNonDisc",0],["fServDisc",0]].map(([id])=>parseFloat(F(id).value)||0);
   const netTot=bn[0]+bn[1]+bn[2], discTot=bd[0]+bd[1]+bd[2];
@@ -1077,18 +1156,53 @@ function projectFromInvoiced(){
   formCtx.dvFull=true; formCtx.dealDvFull=true;              // line edits must not clobber the projection
   formCtx.installments=Y||null; formCtx.depositPct=(pct>0&&pct<100)?pct:null;
   const cur=F("fCur").value||"AUD"; const g=v=>sym()+" "+fmt(disp(toAUD(v,cur)));
-  const how=(pct>0&&pct<100)?`invoiced ÷ ${pct}%`:`invoiced × ${Y} (equal instalments)`;
+  const how=(pct>0&&pct<100)?`invoiced ÷ ${pct}%`:`invoiced ÷ ${X||1}/${Y} billed so far`;
   if(note) note.innerHTML=`<span style="color:var(--gold2)">Deal Value set to <b>${g(fullNet)}</b> (100%) = ${how}. Invoiced <b>${g(invN)}</b> (${rnd(100/mult)}%) · balance <b>${g(rnd(fullNet-invN))}</b> (${rnd(100-100/mult)}%) counts as Potential.</span>`;
+}
+/* ---- Item reconciliation (v30) ----------------------------------------------------
+   Rove invoices usually split the PAYMENT, not the scope: the same product reappears on invoice 2/3
+   at a fraction of its value. Appending each invoice's lines therefore produced duplicate rows with
+   fragmented amounts. When an invoice is added to a deal that already has items, every incoming line
+   is matched against the existing ones and — unless you say otherwise — MERGED into it (amounts added
+   together), so the deal keeps ONE row per item. Names are matched loosely: lower-cased, bracketed
+   qualifiers removed ("Animal Keychain (12 zodiac, printed)" ≡ "Animal Keychain"), so "Extra Animal
+   Keychain" stays a separate item. Every decision is shown and can be overridden before saving. */
+const normItem = s => String(s||"").toLowerCase().replace(/\([^)]*\)/g," ").replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();
+function autoMatchMerge(){
+  const base=formCtx.mergeBase; if(!base) return;
+  (formCtx.lines||[]).forEach(l=>{
+    if(l.mergeTo!=null) return;                                   // keep a choice already made by hand
+    const k=normItem(l.desc);
+    l.mergeTo = k ? base.findIndex(b=>normItem(b.desc)===k && (b.cat||"hq")===(l.cat||"hq")) : -1;
+  });
+}
+function mergeNote(){
+  const el=F("mergeNote"); if(!el) return;
+  const base=formCtx.mergeBase;
+  if(!base){ el.style.display="none"; el.innerHTML=""; return; }
+  let m=0,n=0; (formCtx.lines||[]).forEach(l=>{ (l.mergeTo!=null&&l.mergeTo>=0)?m++:n++; });
+  el.style.display="";
+  el.innerHTML=`<b>Reconcile with the items already on this deal.</b> `
+    +`<b style="color:var(--green4)">${m}</b> line(s) will be <b>merged</b> into an existing item (the amounts are added together, so the deal keeps one row per item) · `
+    +`<b style="color:var(--amber)">${n}</b> will be <b>added as a new line</b>. `
+    +`Matches are found automatically by item name — check the <b>Reconcile</b> column and change any that are wrong.`;
 }
 function renderLines(){
   const box=F("lineRows"); box.innerHTML="";
   const CATS=[["hq","HQ Product (phase rate)"],["nonhq","Non-HQ Product (5%)"],["service","Service (5%)"],["shipping","Shipping (excluded)"],["ignore","Ignore (not counted)"]];
   const cur=esc(F("fCur").value||"AUD");
   const rnd=v=>Math.round((v||0)*100)/100;
+  const base=formCtx.mergeBase;
+  const mergeSel=(l)=>{
+    if(!base) return "";
+    const opts=[`<option value="-1"${(l.mergeTo==null||l.mergeTo<0)?" selected":""}>&#10010; Add as new line</option>`]
+      .concat(base.map((b,bi)=>`<option value="${bi}"${l.mergeTo===bi?" selected":""}>&#8677; Merge into: ${esc((b.desc||"—").slice(0,34))}</option>`));
+    return `<select class="lmerge" style="width:186px;flex:none" title="Merge this invoice line into an item already on the deal, or keep it as a new line">${opts.join("")}</select>`;
+  };
   if((formCtx.lines||[]).length){
     const h=document.createElement("div"); h.className="lrow";
     const hs="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--text3)";
-    h.innerHTML=`<div class="ldesc" style="${hs}">Item</div><div class="lnum" style="${hs};text-align:right">Gross ${cur}</div><div class="lnum" style="${hs};text-align:right">Discount</div><div class="lnum" style="${hs};text-align:right">Net</div><div class="lcat" style="${hs}">Royalty type</div><div style="width:24px"></div>`;
+    h.innerHTML=`<div class="ldesc" style="${hs}">Item</div><div class="lnum" style="${hs};text-align:right">Gross ${cur}</div><div class="lnum" style="${hs};text-align:right">Discount</div><div class="lnum" style="${hs};text-align:right">Net</div><div class="lcat" style="${hs}">Royalty type</div>${base?`<div style="width:186px;flex:none;${hs}">Reconcile</div>`:""}<div style="width:24px"></div>`;
     box.appendChild(h);
   }
   (formCtx.lines||[]).forEach((l,i)=>{
@@ -1098,15 +1212,19 @@ function renderLines(){
       +`<input class="lnum ldisc" type="number" step="0.01" value="${l.disc||""}" placeholder="0" title="Discount amount"/>`
       +`<input class="lnum lnet" type="number" value="${rnd((+l.amt||0)-(+l.disc||0))||""}" readonly tabindex="-1" title="Net = Gross − Discount"/>`
       +`<select class="lcat">${CATS.map(c=>`<option value="${c[0]}"${c[0]===l.cat?" selected":""}>${c[1]}</option>`).join("")}</select>`
+      +mergeSel(l)
       +`<button class="ldel" type="button" title="Remove line">&#10005;</button>`;
     const netEl=row.querySelector(".lnet");
     row.querySelector(".ldesc").oninput=e=>{ l.desc=e.target.value; };
     row.querySelector(".lgross").oninput=e=>{ l.amt=parseFloat(e.target.value)||0; netEl.value=rnd(l.amt-(+l.disc||0))||""; applyLines(); };
     row.querySelector(".ldisc").oninput=e=>{ l.disc=parseFloat(e.target.value)||0; netEl.value=rnd((+l.amt||0)-l.disc)||""; applyLines(); };
     row.querySelector(".lcat").onchange=e=>{ l.cat=e.target.value; applyLines(); };
+    const ms=row.querySelector(".lmerge");
+    if(ms) ms.onchange=e=>{ l.mergeTo=parseInt(e.target.value,10); mergeNote(); };
     row.querySelector(".ldel").onclick=()=>{ formCtx.lines.splice(i,1); renderLines(); applyLines(); };
     box.appendChild(row);
   });
+  mergeNote();
 }
 
 function fillForm(){
@@ -1127,6 +1245,9 @@ function fillForm(){
       const addN=sameCur?addNet:0, addD=sameCur?addDisc:0;
       const firstInv = d.status==="Enquiry Phase";   // converting an enquiry → first invoice replaces the quote value; an already-Ongoing deal accumulates
       formCtx.firstInv = firstInv; formCtx.dealDvFull = !!d.dvFull; formCtx.dvFull = !!d.dvFull;
+      // Adding an invoice to a deal that already carries items → reconcile against them instead of appending blindly.
+      formCtx.mergeBase = (!firstInv && Array.isArray(d.lines) && d.lines.length) ? d.lines.map(l=>({...l})) : null;
+      autoMatchMerge();
       formCtx.dealValBase = firstInv
         ? {prodNet:0,prodDisc:0,nonHqNet:0,nonHqDisc:0,servNet:0,servDisc:0}
         : {prodNet:+d.prodNet||0,prodDisc:+d.prodDisc||0,nonHqNet:+d.nonHqNet||0,nonHqDisc:+d.nonHqDisc||0,servNet:+d.servNet||0,servDisc:+d.servDisc||0};
@@ -1144,6 +1265,8 @@ function fillForm(){
       F("fInvNet").value=((+d.invNet||0)+addN)||"";
       F("fInvDisc").value=((+d.invDisc||0)+addD)||"";
       F("fInvRefs").value=[d.invRefs,p?(p.invNo||p.no):""].filter(Boolean).join(", ");
+      F("fInvThisNo").value = p?(p.invNo||p.no||""):"";
+      F("fInvDate").value = p?(p.terbit||""):"";
       F("fCur").value=d.cur||"AUD"; F("fNotes").value=d.notes||"";
       if(p&&!sameCur){ hint.style.display=""; hint.innerHTML=`<span style="color:var(--red)">&#9888; Parsed invoice is in <b>${esc(p.cur)}</b> but this deal is in <b>${esc(d.cur||"AUD")}</b> — amounts were NOT pre-added. Convert manually and update the invoiced totals below.</span>`; }
       else if(p){ const numNote = formCtx.numChanged ? ` <b style="color:var(--gold2)">Deal number updates ${esc(formCtx.numChanged.from)} → ${esc(formCtx.numChanged.to)}</b> (invoice reference).` : ""; hint.style.display=""; hint.innerHTML=`Adding <b>${esc(p.invNo||p.no)||"invoice"}</b>: +${esc(p.cur)} ${fmt(addNet)} net${addDisc?` (+${fmt(addDisc)} discount)`:""} to the totals below.${numNote} <b>Deal value</b> above now tracks the invoices. If this is a <b>deposit / invoice 1 of 2</b>, raise the Deal Value to the full agreed amount — the unbilled balance then shows as <b>Potential</b> until the next invoice arrives.`; }
@@ -1159,6 +1282,8 @@ function fillForm(){
       F("fServNet").value=""; F("fServDisc").value="";
       F("fInvNet").value=addNet||""; F("fInvDisc").value=addDisc||"";
       F("fInvRefs").value=p?(p.invNo||p.no||""):"";
+      F("fInvThisNo").value = p?(p.invNo||p.no||""):"";
+      F("fInvDate").value = p?(p.terbit||""):"";
       F("fCur").value=p?(p.cur||"AUD"):"AUD"; F("fNotes").value="";
       hint.style.display=""; hint.innerHTML=`New project from this invoice. Deal value defaults to the invoice amount — increase it if this is a deposit (e.g. 50%).`;
     }
@@ -1238,9 +1363,11 @@ function openForm(opts={}){
   const showInstal = isInv || opts.mode==="edit";
   F("rowInstal").style.display = showInstal ? "" : "none";
   F("instalLab").textContent = isInv
-    ? "Instalments — invoice # of # · or this invoice's share of the project"
-    : "Instalments — deposit deal? set the split and the full project value is derived from Invoiced";
+    ? "Instalments — this invoice is # of # · or its share of the project"
+    : "Instalments — how much is billed so far: invoice # of # (e.g. 4 of 4 = fully invoiced) · or the % invoiced";
   F("instalPctLab").textContent = isInv ? "· this invoice =" : "· invoiced =";
+  F("rowInvDate").style.display = isInv ? "" : "none";        // an invoice's issue date decides which phase its revenue lands in
+  F("dedupeBtn").style.display = (opts.mode==="edit") ? "" : "none";
   if(isInv) populateLink(opts.dealIdx!=null?opts.dealIdx:null);
   F("formTitle").textContent =
     opts.mode==="invoice" ? "Invoice — Link to Project" :
@@ -1262,6 +1389,24 @@ const onInstal=()=>{ if(formCtx.mode==="invoice") applyLines(); else projectFrom
 F("fInvY").oninput=onInstal; F("fInvX").oninput=onInstal; F("fInvPct").oninput=onInstal;
 F("fInvNet").oninput=()=>{ if(formCtx.mode==="edit") projectFromInvoiced(); };
 F("addLineBtn").onclick=()=>{ formCtx.lines=formCtx.lines||[]; formCtx.lines.push({desc:"",amt:0,cat:"hq"}); F("secLines").style.display=""; renderLines(); };
+/* Clean-up for deals that already carry duplicated rows from before reconciliation existed:
+   rows describing the same item (same normalised name + royalty type) are combined, amounts added. */
+F("dedupeBtn").onclick=()=>{
+  const src=formCtx.lines||[]; if(!src.length) return;
+  const keyOf=l=>normItem(l.desc)+"||"+(l.cat||"hq");
+  const seen={}, out=[]; let removed=0;
+  src.forEach(l=>{
+    const k=keyOf(l); const at=seen[k];
+    if(at!=null){ const t=out[at];
+      t.amt =Math.round(((+t.amt||0)+(+l.amt||0))*100)/100;
+      t.disc=Math.round(((+t.disc||0)+(+l.disc||0))*100)/100;
+      removed++;
+    } else { seen[k]=out.length; out.push({...l}); }
+  });
+  if(!removed){ alert("No duplicate items found — every row already describes a different item."); return; }
+  if(!confirm(`Combine ${removed} duplicate row(s)?\n\n${src.length} rows → ${out.length} rows. Amounts of matching items are added together; nothing is lost.`)) return;
+  formCtx.lines=out; renderLines(); applyLines();
+};
 
 F("saveDoc").onclick=()=>{
   const o={
@@ -1282,7 +1427,7 @@ F("saveDoc").onclick=()=>{
   let cleanLines=null;
   if(formCtx.lines&&formCtx.lines.length){ const s=lineSums(); const disc=s.Pd+s.Nd+s.Sd;
     classLog=`items classified (gross) — HQ ${fmt(s.Pg)} · Non-HQ ${fmt(s.Ng)} · Service ${fmt(s.Sg)} · shipping excl ${fmt(s.SH)}${disc?` · discount ${fmt(disc)} (added back, Cl. 1)`:""}`;
-    cleanLines=formCtx.lines.map(l=>({desc:(l.desc||"").trim(),amt:parseFloat(l.amt)||0,disc:parseFloat(l.disc)||0,cat:l.cat||"ignore"})).filter(l=>l.amt||l.desc);
+    cleanLines=formCtx.lines.map(l=>({desc:(l.desc||"").trim(),amt:parseFloat(l.amt)||0,disc:parseFloat(l.disc)||0,cat:l.cat||"ignore",_mt:(l.mergeTo==null?-1:l.mergeTo)})).filter(l=>l.amt||l.desc);
   }
   // Line-item list stored on the deal (shown when reviewing / editing):
   //  · new / quoteReplace / edit → these lines ARE the list.
@@ -1296,10 +1441,37 @@ F("saveDoc").onclick=()=>{
     if(formCtx.mode==="invoice" && ex){
       const firstInvoice = ex.status==="Enquiry Phase";   // same rule as the deal-value base: enquiry→replace, Ongoing→accumulate
       if(firstInvoice){ o.lines=cleanLines; linesMode=`item list set from invoice (${cleanLines.length}) — replaced quotation estimate`; }
-      else { o.lines=(Array.isArray(ex.lines)?ex.lines:[]).concat(cleanLines); linesMode=`appended ${cleanLines.length} invoice item(s) — list now ${o.lines.length}`; }
+      else {
+        // Reconcile instead of appending: a line matched to an existing item ADDS its amounts to that row,
+        // so an item billed across several invoices ends up as ONE row holding the full value.
+        const merged=(Array.isArray(ex.lines)?ex.lines:[]).map(l=>({...l}));
+        let nm=0, na=0;
+        cleanLines.forEach(cl=>{
+          const t=cl._mt;
+          if(t>=0 && merged[t]){
+            merged[t].amt = Math.round(((+merged[t].amt||0)+(+cl.amt||0))*100)/100;
+            merged[t].disc= Math.round(((+merged[t].disc||0)+(+cl.disc||0))*100)/100;
+            nm++;
+          } else { na++; merged.push({desc:cl.desc,amt:cl.amt,disc:cl.disc,cat:cl.cat}); }
+        });
+        o.lines=merged;
+        linesMode=`invoice items reconciled — ${nm} merged into existing item(s), ${na} added as new · list now ${merged.length}`;
+      }
     } else {
       o.lines=cleanLines;
     }
+    if(Array.isArray(o.lines)) o.lines.forEach(l=>{ delete l._mt; });
+  }
+  // Record THIS invoice — number, issue date and its own amounts — so revenue is recognised per invoice.
+  if(formCtx.mode==="invoice"){
+    const ex2 = formCtx.targetIdx!=null ? deals[formCtx.targetIdx] : null;
+    const list = (ex2 && Array.isArray(ex2.invoices)) ? ex2.invoices.map(v=>({...v})) : [];
+    const base = formCtx.baseInv||{net:0,disc:0};
+    const tn = Math.round(((+o.invNet||0)-(+base.net||0))*100)/100;      // what THIS invoice adds
+    const td = Math.round(((+o.invDisc||0)-(+base.disc||0))*100)/100;
+    const vno=(F("fInvThisNo").value||"").trim(), vdt=F("fInvDate").value||"";
+    if((vno||vdt) && (tn||td)) list.push({no:vno||"(invoice)", date:vdt, net:tn, disc:td});
+    if(list.length) o.invoices=list;
   }
   if(!o.no && !o.klien){ alert("Enter at least a Deal No or a Client name before saving."); return; }
   const p=formCtx.parsed||null;
@@ -1501,6 +1673,7 @@ function setSync(state){
   const m=map[state]||map.ok; el.innerHTML=m[0]; el.style.color=m[1];
 }
 function scheduleSync(){
+  if(!BACKEND_URL) return;                        // prototype build — nothing is written back
   if(RO()||!window.__TOKEN) return;
   setSync("dirty"); clearTimeout(syncTimer);
   syncTimer=setTimeout(pushDeals,1200);          // debounce: one Sheet write per burst of edits
