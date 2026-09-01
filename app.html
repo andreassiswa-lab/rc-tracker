@@ -1152,9 +1152,11 @@ function applyLines(){
       F("fServNet").value=(b.servNet+servNet)||""; F("fServDisc").value=(b.servDisc+s.Sd)||"";
     }
   } else if(!formCtx.dealDvFull){                          // edit / new / quoteReplace — but never auto-overwrite a full projected value from the deposit's line items
-    F("fProdNet").value=prodNet||""; F("fProdDisc").value=s.Pd||"";
-    if(s.Ng>0){ F("fNonNet").value=nonNet; F("fNonDisc").value=s.Nd||""; }
-    if(s.Sg>0){ F("fServNet").value=servNet; F("fServDisc").value=s.Sd||""; }
+    // round to cents — summing line items in floating point otherwise shows 432.79999999999995 in the box
+    const c=v=>Math.round((v||0)*100)/100;
+    F("fProdNet").value=c(prodNet)||""; F("fProdDisc").value=c(s.Pd)||"";
+    if(s.Ng>0){ F("fNonNet").value=c(nonNet); F("fNonDisc").value=c(s.Nd)||""; }
+    if(s.Sg>0){ F("fServNet").value=c(servNet); F("fServDisc").value=c(s.Sd)||""; }
   }
 }
 /* EDIT mode instalment split. There is no "this invoice" here, so the full project is derived from the
@@ -1167,7 +1169,9 @@ function projectFromInvoiced(){
   // (not one instalment). "4 of 4" therefore means fully invoiced → multiplier 1, not × 4.
   const share = (pct>0&&pct<=100) ? pct/100 : ((Y>=1&&X>=1) ? Math.min(1, X/Y) : 0);
   const mult = share>0 ? 1/share : 0;
-  if(!(mult>=1)){ if(note) note.innerHTML=""; formCtx.dvFull=false; formCtx.installments=null; formCtx.depositPct=null; return; }
+  // Boxes cleared = no projection at all: hand the Deal Value back to the item list (dealDvFull must go
+  // too, otherwise line edits would still be blocked by a projection that no longer exists).
+  if(!(mult>=1)){ if(note) note.innerHTML=""; formCtx.dvFull=false; formCtx.dealDvFull=false; formCtx.installments=null; formCtx.depositPct=null; applyLines(); return; }
   const invN=parseFloat(F("fInvNet").value)||0, invD=parseFloat(F("fInvDisc").value)||0;
   if(!(invN>0)){ if(note) note.innerHTML=`<span style="color:var(--amber)">&#9888; Enter the invoiced amount first — the full project value is derived from it.</span>`; return; }
   if(mult===1){   // fully invoiced: the deal value IS what was billed — rebuild it from the itemised list when there is one
