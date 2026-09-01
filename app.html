@@ -884,6 +884,15 @@ function parseDoc(text, fileName){
   // separate table rows, so also accept a bare EVT#### anywhere in the document.
   const refM=t.match(/reference\s*[:#]?\s*([A-Za-z]{2,5}\s?\d{3,}[\w.\-]*)/i) || t.match(/\b(EVT\s?\d{3,}[\w.\-]*)/i);
   const invM=t.match(/\b(INV[-\s]?\d{3,}[\w\-]*)/i);
+  // Rove invoices state the instalment on the document itself ("This is invoice 2 of 2",
+  // "50% remainder to be paid", "1 of 2 — 50% deposit"). Reading it lets the tracker tell a deposit
+  // from the FINAL invoice without anyone having to work it out.
+  const im=t.match(/invoice\s*(\d{1,2})\s*of\s*(\d{1,2})/i);
+  if(im){ r.instX=parseInt(im[1],10); r.instY=parseInt(im[2],10); }
+  const remM=t.match(/(\d{1,3})\s*%\s*remainder/i);
+  if(remM){ const rem=parseInt(remM[1],10); if(rem>0&&rem<100) r.depositPct=100-rem; }   // "60% remainder" → this invoice is the 40% deposit
+  if(!r.depositPct){ const depM=t.match(/(\d{1,3})\s*%\s*deposit/i);
+    if(depM){ const dp=parseInt(depM[1],10); if(dp>0&&dp<100) r.depositPct=dp; } }
   if(refM) r.no=refM[1].toUpperCase().replace(/\s+/g,"");
   if(invM) r.invNo=invM[1].toUpperCase().replace(/\s+/g,"-");
   if(/\b(idr|rp)\b/i.test(t) && !/\b(aud|a\$)\b/i.test(t)) r.cur="IDR";
@@ -1073,6 +1082,21 @@ function lineSums(){   // Pg/Ng/Sg = GROSS per bucket · Pd/Nd/Sd = per-line dis
     else if(l.cat==="shipping")SH+=a; });
   return {Pg,Pd,Ng,Nd,Sg,Sd,SH};
 }
+/* Bucket totals of the deal AFTER this invoice is reconciled into it — i.e. what the item list will
+   look like once saved. Used on the final invoice, where Deal Value must become the real total. */
+function mergedLineSums(){
+  const base=(formCtx.mergeBase||[]).map(l=>({...l}));
+  (formCtx.lines||[]).forEach(l=>{
+    const t=(l.mergeTo==null?-1:l.mergeTo);
+    if(t>=0 && base[t]){ base[t].amt=(+base[t].amt||0)+(+l.amt||0); base[t].disc=(+base[t].disc||0)+(+l.disc||0); }
+    else base.push({...l});
+  });
+  let Pg=0,Pd=0,Ng=0,Nd=0,Sg=0,Sd=0;
+  base.forEach(l=>{ const a=Math.abs(parseFloat(l.amt)||0); if(!a) return;
+    const d=Math.min(a,Math.max(0,parseFloat(l.disc)||0));
+    if(l.cat==="hq"){Pg+=a;Pd+=d;} else if(l.cat==="nonhq"){Ng+=a;Nd+=d;} else if(l.cat==="service"){Sg+=a;Sd+=d;} });
+  return {Pg,Pd,Ng,Nd,Sg,Sd};
+}
 function applyLines(){
   if(!(formCtx.lines&&formCtx.lines.length)){ F("lineSummary").textContent=""; return; }
   const s=lineSums();
@@ -1087,11 +1111,25 @@ function applyLines(){
     F("fInvNet").value=(base.net+prodNet+nonNet+servNet)||"";
     F("fInvDisc").value=(base.disc+disc)||"";
     const rnd=v=>Math.round((v||0)*100)/100;
+    const X=parseInt(F("fInvX").value)||0;
     const Y=parseInt(F("fInvY").value)||0;
     const pct=parseFloat(F("fInvPct").value)||0;
     // A % share wins over the "of N" count: deposits are often uneven (40/60), where × N would be wrong.
     const mult = (pct>0&&pct<=100) ? 100/pct : (Y>=2 ? Y : 0);   // 100% = this invoice covers the whole project → no projection
     const note=F("fInvSplitNote"); if(note) note.innerHTML="";
+    // FINAL INVOICE ("this is invoice 2 of 2"): everything is now billed, so the estimate made from the
+    // deposit gives way to the real thing — Deal Value becomes the reconciled item list.
+    if(X>0 && Y>0 && X>=Y && formCtx.mergeBase){
+      const m=mergedLineSums();
+      F("fProdNet").value=rnd(m.Pg-m.Pd)||""; F("fProdDisc").value=rnd(m.Pd)||"";
+      F("fNonNet").value=rnd(m.Ng-m.Nd)||"";  F("fNonDisc").value=rnd(m.Nd)||"";
+      F("fServNet").value=rnd(m.Sg-m.Sd)||""; F("fServDisc").value=rnd(m.Sd)||"";
+      F("fInvPct").value="";
+      formCtx.dvFull=false; formCtx.dealDvFull=false; formCtx.installments=Y; formCtx.depositPct=null;
+      const full=rnd((m.Pg-m.Pd)+(m.Ng-m.Nd)+(m.Sg-m.Sd));
+      if(note) note.innerHTML=`<span style="color:var(--green4)"><b>Final invoice (${X} of ${Y})</b> — the project is fully billed, so the deposit estimate is replaced by the real total: Deal Value <b>${g(full)}</b> from the reconciled item list. Potential becomes 0.</span>`;
+      return;
+    }
     if(mult>1 && formCtx.firstInv){
       // Deposit / first instalment: project the FULL (100%) project value from this invoice's share.
       F("fProdNet").value=rnd(prodNet*mult)||""; F("fProdDisc").value=rnd(s.Pd*mult)||"";
@@ -1252,9 +1290,10 @@ function fillForm(){
         ? {prodNet:0,prodDisc:0,nonHqNet:0,nonHqDisc:0,servNet:0,servDisc:0}
         : {prodNet:+d.prodNet||0,prodDisc:+d.prodDisc||0,nonHqNet:+d.nonHqNet||0,nonHqDisc:+d.nonHqDisc||0,servNet:+d.servNet||0,servDisc:+d.servDisc||0};
       const priorInv=(String(d.invRefs||"").split(",").filter(x=>x.trim()).length);   // how many invoices already recorded
-      F("fInvX").value = firstInv ? 1 : (priorInv+1);
-      F("fInvY").value = d.installments || "";
-      F("fInvPct").value = d.depositPct || "";
+      // The invoice itself usually says which instalment it is — trust the document first.
+      F("fInvX").value = (p && p.instX) ? p.instX : (firstInv ? 1 : (priorInv+1));
+      F("fInvY").value = (p && p.instY) ? p.instY : (d.installments || "");
+      F("fInvPct").value = (p && p.depositPct) ? p.depositPct : (d.depositPct || "");
       const invRefNo = (p && isProjRef(p.no)) ? p.no.toUpperCase().replace(/\s+/g,"") : d.no;  // invoicing an enquiry adopts the invoice reference (ENQ0002 → EVT0002)
       formCtx.numChanged = invRefNo!==d.no ? {from:d.no, to:invRefNo} : null;
       F("fNo").value=invRefNo; F("fKlien").value=d.klien; F("fEvent").value=d.eventDate||"";
